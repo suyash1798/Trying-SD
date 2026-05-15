@@ -1,0 +1,53 @@
+name: CI - Build & Publish to GHCR
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  build-and-push:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v2
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v2
+
+      - name: Log in to GitHub Container Registry
+        uses: docker/login-action@v2
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push wallet-service
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/wallet-service
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/wallet-service:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/wallet-service:latest
+
+      - name: Build and push game-service
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/game-service
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/game-service:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/game-service:latest
+
+      - name: Build and push mock-frontend
+        uses: docker/build-push-action@v4
+        with:
+          context: ./services/mock-frontend
+          push: true
+          tags: ghcr.io/${{ github.repository_owner }}/mock-frontend:${{ github.sha }},ghcr.io/${{ github.repository_owner }}/mock-frontend:latest

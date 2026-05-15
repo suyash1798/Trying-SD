@@ -1,0 +1,38 @@
+version: '3.8'
+services:
+  redis:
+    image: redis:7.2
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis-data:/data
+    restart: unless-stopped
+
+  wallet-service:
+    build: ./services/wallet-service
+    ports:
+      - "4000:4000"
+    restart: unless-stopped
+
+  game-service:
+    build: ./services/game-service
+    ports:
+      - "3000:3000"
+    depends_on:
+      - wallet-service
+    restart: unless-stopped
+
+  mock-frontend:
+    build: ./services/mock-frontend
+    environment:
+      - GAME_URL=ws://game-service:3000
+      - USER_ID=user-1
+    depends_on:
+      - game-service
+    restart: unless-stopped
+
+volumes:
+  redis-data:
+  zookeeper-data:
+  kafka-data:
