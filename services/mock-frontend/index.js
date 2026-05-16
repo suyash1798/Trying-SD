@@ -4,6 +4,11 @@ const wsUrl = process.env.GAME_URL || 'ws://game-service:3000';
 const userId = process.env.USER_ID || 'user-1';
 
 function connect() {
+  loadConnections = []
+
+  for(let i = 0; i < 100; i++){
+    loadConnections.push(WebSocket(wsUrl))
+  }
   const ws = new WebSocket(wsUrl);
   console.log(wsUrl, process.env.GAME_URL)
 
