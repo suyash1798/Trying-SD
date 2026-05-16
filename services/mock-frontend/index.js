@@ -6,9 +6,10 @@ const userId = process.env.USER_ID || 'user-1';
 function connect() {
 
   console.log(process.memoryUsage())
-  for(let i = 0; i < 1000; i++){
+  for(let i = 0; i < 100; i++){
     new WebSocket(wsUrl)
   }
+  console.log(process.memoryUsage())
   const ws = new WebSocket(wsUrl);
   console.log(wsUrl, process.env.GAME_URL)
 
