@@ -5,6 +5,7 @@ const userId = process.env.USER_ID || 'user-1';
 
 function connect() {
   const ws = new WebSocket(wsUrl);
+  console.log(wsUrl, process.env.GAME_URL)
 
   ws.on('open', () => {
     console.log('connected to game-service via websocket');
