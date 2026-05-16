@@ -5,7 +5,7 @@ const userId = process.env.USER_ID || 'user-1';
 
 function connect() {
 
-  for(let i = 0; i < 100; i++){
+  for(let i = 0; i < 10000; i++){
     new WebSocket(wsUrl)
   }
   const ws = new WebSocket(wsUrl);
