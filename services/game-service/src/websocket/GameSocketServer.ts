@@ -9,12 +9,14 @@ import { log } from '../observability/logger';
 import { PlayerEvent } from '../types/events';
 import { GameSocket, IncomingMessagePayload } from '../types/websocket';
 import Heartbeat from './Heartbeat';
+import RoomRegistry from './RoomRegistry';
 
 class GameSocketServer {
   private readonly wss: WebSocketServer;
   private readonly heartbeat: Heartbeat;
   private readonly actions: GameActions;
   private readonly pubSub: RedisPubSub;
+  private readonly rooms = new RoomRegistry();
 
   constructor({
     server,
@@ -61,7 +63,10 @@ class GameSocketServer {
     });
 
     ws.on('message', (msg) => this.handleMessage(ws, msg));
-    ws.on('close', () => log('ws_closed', { connectionId: ws.id, userId: ws.userId, roomId: ws.roomId }));
+    ws.on('close', () => {
+      this.rooms.remove(ws);
+      log('ws_closed', { connectionId: ws.id, userId: ws.userId, roomId: ws.roomId });
+    });
   }
 
   private async handleMessage(ws: GameSocket, msg: RawData): Promise<void> {
@@ -76,18 +81,11 @@ class GameSocketServer {
     }
 
     await this.actions.handle(ws, payload);
+    this.rooms.sync(ws);
   }
 
   private notifyRoom(event: PlayerEvent): void {
-    this.wss.clients.forEach((client) => {
-      const gameClient = client as GameSocket;
-
-      if (gameClient.roomId !== event.roomId || gameClient.id === event.sourceConnectionId) {
-        return;
-      }
-
-      gameClient.send(JSON.stringify({ type: 'notification', event }));
-    });
+    this.rooms.notify(event);
   }
 
   stop(): void {
