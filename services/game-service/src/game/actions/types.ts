@@ -24,9 +24,9 @@ export function send(ws: GameSocket, payload: object): void {
   ws.send(JSON.stringify(payload));
 }
 
-export function remember(ws: GameSocket, requestId: string | null | undefined, response: object): void {
-  if (requestId) {
-    ws.processedRequests.set(requestId, response);
+export function remember(ws: GameSocket, key: string | null, response: object): void {
+  if (key) {
+    ws.processedRequests.set(key, response);
   }
 }
 

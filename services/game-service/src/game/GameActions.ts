@@ -3,6 +3,7 @@ import RequestLogger from '../observability/RequestLogger';
 import { IncomingMessagePayload, GameSocket } from '../types/websocket';
 import { joinAction } from './actions/joinAction';
 import { spinAction } from './actions/spinAction';
+import { idempotencyKey } from './idempotency';
 import {
   ActionContext,
   RequestTrace,
@@ -28,14 +29,15 @@ class GameActions {
     const startedAt = Date.now();
     const trace = this.trace(ws, payload);
     const { action, requestId } = payload;
+    const key = idempotencyKey(ws, payload);
 
-    if (requestId && ws.processedRequests.has(requestId)) {
+    if (key && ws.processedRequests.has(key)) {
       this.context.logger.duplicateCompleted(trace, startedAt);
-      send(ws, { ...ws.processedRequests.get(requestId), duplicate: true });
+      send(ws, { ...ws.processedRequests.get(key), duplicate: true });
       return;
     }
 
-    if (requestId && ws.pendingRequests.has(requestId)) {
+    if (key && ws.pendingRequests.has(key)) {
       this.context.logger.duplicatePending(trace, startedAt);
       send(ws, { status: 'pending', duplicate: true, requestId });
       return;
@@ -44,12 +46,12 @@ class GameActions {
     this.context.logger.started(trace);
 
     if (action === 'join') {
-      await joinAction(ws, payload, this.context, trace, startedAt);
+      await joinAction(ws, payload, this.context, trace, startedAt, key);
       return;
     }
 
     if (action === 'spin') {
-      await spinAction(ws, payload, this.context, trace, startedAt);
+      await spinAction(ws, payload, this.context, trace, startedAt, key);
       return;
     }
 
@@ -61,6 +63,7 @@ class GameActions {
     return {
       action: payload.action,
       requestId: payload.requestId,
+      idempotencyKey: idempotencyKey(ws, payload),
       connectionId: ws.id,
       userId: payload.userId || ws.userId,
       roomId: payload.roomId || ws.roomId

@@ -9,7 +9,8 @@ export async function spinAction(
   payload: IncomingMessagePayload,
   context: ActionContext,
   trace: RequestTrace,
-  startedAt: number
+  startedAt: number,
+  idempotencyKey: string | null
 ): Promise<void> {
   const { requestId, roundId, betAmount } = payload;
 
@@ -31,7 +32,7 @@ export async function spinAction(
     return;
   }
 
-  ws.pendingRequests.add(requestId);
+  ws.pendingRequests.add(idempotencyKey || requestId);
 
   try {
     const debit = await context.adjustWallet(ws.userId, -betAmount);
@@ -54,7 +55,7 @@ export async function spinAction(
       balance
     };
 
-    remember(ws, requestId, response);
+    remember(ws, idempotencyKey, response);
     send(ws, response);
     context.logger.completed({ ...trace, roundId, betAmount }, startedAt);
 
@@ -83,7 +84,7 @@ export async function spinAction(
       requestId
     });
   } finally {
-    ws.pendingRequests.delete(requestId);
+    ws.pendingRequests.delete(idempotencyKey || requestId);
   }
 }
 

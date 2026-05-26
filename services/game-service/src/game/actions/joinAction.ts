@@ -6,7 +6,8 @@ export async function joinAction(
   payload: IncomingMessagePayload,
   context: ActionContext,
   trace: RequestTrace,
-  startedAt: number
+  startedAt: number,
+  idempotencyKey: string | null
 ): Promise<void> {
   const { userId, roomId, requestId } = payload;
 
@@ -20,7 +21,7 @@ export async function joinAction(
   ws.roomId = roomId;
 
   const response = { status: 'ok', action: 'joined', userId, roomId, requestId };
-  remember(ws, requestId, response);
+  remember(ws, idempotencyKey, response);
   send(ws, response);
   context.logger.completed({ ...trace, userId, roomId }, startedAt);
 
