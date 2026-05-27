@@ -15,24 +15,38 @@ dynamodb           Flexible game-player persistent data
 ws-load-tester     WebSocket load testing client
 ```
 
+## Code Structure
+
+`game-service` is structured so WebSocket is only the transport layer. The same service layer can be reused later by REST APIs.
+
+```text
+src/websocket/       WebSocket controller/gateway, room registry, validation
+src/http/            HTTP health app, future REST APIs
+src/game/actions/    WebSocket action controllers
+src/game/services/   Business logic
+src/repositories/    Redis, Postgres, DynamoDB persistence access
+src/game/models/     Domain models/interfaces
+src/infra/           Low-level clients
+src/observability/   Logs and request tracing
+```
+
+Flow:
+
+```text
+WebSocket message
+  -> messageValidator
+  -> GameActions router
+  -> action controller
+  -> game service
+  -> repository/client
+```
+
 ## Local Setup
 
-Start infrastructure first:
+Start everything locally:
 
 ```bash
-docker compose up -d redis postgres dynamodb
-```
-
-Run Prisma migrations:
-
-```bash
-docker compose run --rm game-service npm run db:migrate
-```
-
-Start services:
-
-```bash
-docker compose up --build wallet-service game-service
+sh scripts/start-local.sh
 ```
 
 Health checks:

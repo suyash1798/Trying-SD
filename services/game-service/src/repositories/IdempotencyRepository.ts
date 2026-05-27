@@ -5,7 +5,7 @@ interface StoredRequest {
   response?: object;
 }
 
-class IdempotencyStore {
+class IdempotencyRepository {
   constructor(
     private readonly redis: RedisKeyValueClient,
     private readonly ttlSeconds: number
@@ -41,4 +41,4 @@ class IdempotencyStore {
   }
 }
 
-export default IdempotencyStore;
+export default IdempotencyRepository;

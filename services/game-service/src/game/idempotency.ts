@@ -1,4 +1,11 @@
-import { IncomingMessagePayload, GameSocket } from '../types/websocket';
+import {
+  EndRoundPayload,
+  IncomingMessagePayload,
+  GameSocket,
+  JoinPayload,
+  PersistentDataPayload,
+  SpinPayload
+} from '../types/websocket';
 
 class Idempotency {
   public key(ws: GameSocket, payload: IncomingMessagePayload): string | null {
@@ -21,25 +28,21 @@ class Idempotency {
     return null;
   }
 
-  private joinKey(payload: IncomingMessagePayload): string | null {
-    if (!payload.requestId || !payload.userId || !payload.roomId) {
-      return null;
-    }
-
+  private joinKey(payload: JoinPayload): string {
     return `join:${payload.userId}:${payload.roomId}:${payload.requestId}`;
   }
 
-  private spinKey(ws: GameSocket, payload: IncomingMessagePayload): string | null {
-    const userId = ws.userId || payload.userId;
+  private spinKey(ws: GameSocket, payload: SpinPayload): string | null {
+    const userId = ws.userId;
 
-    if (!userId || !payload.spinId) {
+    if (!userId) {
       return null;
     }
 
     return `spin:${userId}:${payload.spinId}`;
   }
 
-  private endRoundKey(ws: GameSocket, payload: IncomingMessagePayload): string | null {
+  private endRoundKey(ws: GameSocket, payload: EndRoundPayload): string | null {
     if (!payload.requestId || !ws.userId || !ws.roomId) {
       return null;
     }
@@ -47,7 +50,7 @@ class Idempotency {
     return `end-round:${ws.userId}:${ws.roomId}:${payload.requestId}`;
   }
 
-  private persistentDataKey(ws: GameSocket, payload: IncomingMessagePayload): string | null {
+  private persistentDataKey(ws: GameSocket, payload: PersistentDataPayload): string | null {
     if (!payload.requestId || !ws.userId || !payload.gameId) {
       return null;
     }

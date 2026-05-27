@@ -9,23 +9,36 @@ export interface GameSocket extends WebSocket {
   pendingRequests: Set<string>;
 }
 
-export interface IncomingMessagePayload {
-  action: GameAction;
-  userId?: string;
-  roomId?: string;
-  gameId?: string;
-  data?: Record<string, unknown>;
-  roundId?: string;
-  spinId?: string;
-  betAmount?: number;
-  requestId?: string;
+export interface JoinPayload {
+  action: 'join';
+  requestId: string;
+  userId: string;
+  roomId: string;
 }
 
-enum GameAction{
-  JOIN = 'join',
-  SPIN = 'spin',
-  END_ROUND = 'end_round',
-  PERSISTENT_DATA = 'persistent_data'
+export interface SpinPayload {
+  action: 'spin';
+  requestId: string;
+  spinId: string;
+  betAmount: number;
 }
+
+export interface EndRoundPayload {
+  action: 'end_round';
+  requestId: string;
+}
+
+export interface PersistentDataPayload {
+  action: 'persistent_data';
+  requestId: string;
+  gameId: string;
+  data: Record<string, unknown>;
+}
+
+export type IncomingMessagePayload =
+  | JoinPayload
+  | SpinPayload
+  | EndRoundPayload
+  | PersistentDataPayload;
 
 export type OutgoingPayload = Record<string, unknown>;

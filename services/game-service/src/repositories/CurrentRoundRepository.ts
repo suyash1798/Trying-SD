@@ -1,8 +1,8 @@
 import { randomUUID } from 'crypto';
 import RedisKeyValueClient from '../infra/RedisKeyValueClient';
-import { ActiveRound } from './models/Round';
+import { ActiveRound } from '../game/models/Round';
 
-class CurrentRoundStore {
+class CurrentRoundRepository {
   constructor(private readonly redis: RedisKeyValueClient) {}
 
   async get(userId: string, roomId: string): Promise<ActiveRound | null> {
@@ -55,4 +55,4 @@ class CurrentRoundStore {
   }
 }
 
-export default CurrentRoundStore;
+export default CurrentRoundRepository;

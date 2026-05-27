@@ -1,11 +1,10 @@
 import RequestLogger from '../../observability/RequestLogger';
 import GameEventPublisher from '../GameEventPublisher';
-import GamePlayerDataStore from '../GamePlayerDataStore';
 import GameResponseSender from '../GameResponseSender';
-import CurrentRoundStore from '../CurrentRoundStore';
-import IdempotencyStore from '../IdempotencyStore';
-import RoundStore from '../RoundStore';
-import SpinStore from '../SpinStore';
+import IdempotencyRepository from '../../repositories/IdempotencyRepository';
+import GamePlayerDataService from '../services/GamePlayerDataService';
+import RoundService from '../services/RoundService';
+import SpinService from '../services/SpinService';
 import { WalletAdjustResponse } from '../../types/wallet';
 import { GameSocket } from '../../types/websocket';
 
@@ -20,13 +19,11 @@ export type RequestTrace = Record<string, unknown> & {
 };
 
 export interface ActionContext {
-  adjustWallet: WalletAdjustHandler;
-  gamePlayerDataStore: GamePlayerDataStore;
+  gamePlayerDataService: GamePlayerDataService;
   publisher: GameEventPublisher;
-  currentRoundStore: CurrentRoundStore;
-  idempotencyStore: IdempotencyStore;
-  roundStore: RoundStore;
-  spinStore: SpinStore;
+  idempotencyRepository: IdempotencyRepository;
+  roundService: RoundService;
+  spinService: SpinService;
   logger: RequestLogger;
   responder: GameResponseSender;
 }
@@ -35,7 +32,7 @@ export async function remember(
   ws: GameSocket,
   key: string | null,
   response: object,
-  store: IdempotencyStore
+  store: IdempotencyRepository
 ): Promise<void> {
   if (key) {
     ws.processedRequests.set(key, response);

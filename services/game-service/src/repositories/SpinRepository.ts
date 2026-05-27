@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { CompletedSpin } from './models/Spin';
+import { CompletedSpin } from '../game/models/Spin';
 
-class SpinStore {
+class SpinRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async saveCompletedSpin(spin: CompletedSpin): Promise<void> {
@@ -22,4 +22,4 @@ class SpinStore {
   }
 }
 
-export default SpinStore;
+export default SpinRepository;

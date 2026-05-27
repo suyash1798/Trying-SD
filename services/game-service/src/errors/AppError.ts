@@ -3,7 +3,7 @@ class AppError extends Error {
     message: string,
     readonly status = 500,
     readonly detail: unknown = null,
-    readonly source = 'game-service'
+    readonly source = "game-service",
   ) {
     super(message);
   }

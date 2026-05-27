@@ -2,16 +2,17 @@ import { randomUUID } from 'crypto';
 import { Server as HttpServer } from 'http';
 import { RawData, WebSocketServer } from 'ws';
 import GameActions, { WalletAdjustHandler } from '../game/GameActions';
-import CurrentRoundStore from '../game/CurrentRoundStore';
-import GamePlayerDataStore from '../game/GamePlayerDataStore';
-import IdempotencyStore from '../game/IdempotencyStore';
-import RoundStore from '../game/RoundStore';
-import SpinStore from '../game/SpinStore';
+import CurrentRoundRepository from '../repositories/CurrentRoundRepository';
+import GamePlayerDataRepository from '../repositories/GamePlayerDataRepository';
+import IdempotencyRepository from '../repositories/IdempotencyRepository';
+import RoundRepository from '../repositories/RoundRepository';
+import SpinRepository from '../repositories/SpinRepository';
 import RedisPubSub from '../infra/redisPubSub';
 import { log } from '../observability/logger';
 import { PlayerEvent } from '../types/events';
 import { GameSocket, IncomingMessagePayload } from '../types/websocket';
 import Heartbeat from './Heartbeat';
+import { validateMessage } from './messageValidator';
 import RoomRegistry from './RoomRegistry';
 
 class GameSocketServer {
@@ -26,22 +27,22 @@ class GameSocketServer {
     heartbeatIntervalMs,
     adjustWallet,
     pubSub,
-    gamePlayerDataStore,
-    currentRoundStore,
-    idempotencyStore,
-    roundStore,
-    spinStore,
+    gamePlayerDataRepository,
+    currentRoundRepository,
+    idempotencyRepository,
+    roundRepository,
+    spinRepository,
     serverId
   }: {
     server: HttpServer;
     heartbeatIntervalMs: number;
     adjustWallet: WalletAdjustHandler;
     pubSub: RedisPubSub;
-    gamePlayerDataStore: GamePlayerDataStore;
-    currentRoundStore: CurrentRoundStore;
-    idempotencyStore: IdempotencyStore;
-    roundStore: RoundStore;
-    spinStore: SpinStore;
+    gamePlayerDataRepository: GamePlayerDataRepository;
+    currentRoundRepository: CurrentRoundRepository;
+    idempotencyRepository: IdempotencyRepository;
+    roundRepository: RoundRepository;
+    spinRepository: SpinRepository;
     serverId: string;
   }) {
     this.wss = new WebSocketServer({ server });
@@ -51,11 +52,11 @@ class GameSocketServer {
       adjustWallet,
       pubSub,
       serverId,
-      gamePlayerDataStore,
-      currentRoundStore,
-      idempotencyStore,
-      roundStore,
-      spinStore
+      gamePlayerDataRepository,
+      currentRoundRepository,
+      idempotencyRepository,
+      roundRepository,
+      spinRepository
     );
   }
 
@@ -91,10 +92,10 @@ class GameSocketServer {
     let payload: IncomingMessagePayload;
 
     try {
-      payload = JSON.parse(msg.toString());
+      payload = validateMessage(JSON.parse(msg.toString()));
     } catch (err) {
-      log('ws_invalid_json', { connectionId: ws.id });
-      ws.send(JSON.stringify({ status: 'error', error: 'invalid json' }));
+      log('ws_invalid_message', { connectionId: ws.id });
+      ws.send(JSON.stringify({ status: 'error', error: 'invalid message' }));
       return;
     }
 

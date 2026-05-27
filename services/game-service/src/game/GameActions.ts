@@ -5,14 +5,17 @@ import { joinAction } from './actions/joinAction';
 import { spinAction } from './actions/spinAction';
 import { endRoundAction } from './actions/endRoundAction';
 import { persistentDataAction } from './actions/persistentDataAction';
-import CurrentRoundStore from './CurrentRoundStore';
 import GameEventPublisher from './GameEventPublisher';
-import GamePlayerDataStore from './GamePlayerDataStore';
+import GamePlayerDataRepository from '../repositories/GamePlayerDataRepository';
 import GameResponseSender from './GameResponseSender';
-import IdempotencyStore from './IdempotencyStore';
+import CurrentRoundRepository from '../repositories/CurrentRoundRepository';
+import IdempotencyRepository from '../repositories/IdempotencyRepository';
 import Idempotency from './idempotency';
-import RoundStore from './RoundStore';
-import SpinStore from './SpinStore';
+import RoundRepository from '../repositories/RoundRepository';
+import SpinRepository from '../repositories/SpinRepository';
+import GamePlayerDataService from './services/GamePlayerDataService';
+import RoundService from './services/RoundService';
+import SpinService from './services/SpinService';
 import {
   ActionContext,
   RequestTrace,
@@ -29,24 +32,22 @@ class GameActions {
     adjustWallet: WalletAdjustHandler,
     pubSub: RedisPubSub,
     serverId: string,
-    gamePlayerDataStore: GamePlayerDataStore,
-    currentRoundStore: CurrentRoundStore,
-    idempotencyStore: IdempotencyStore,
-    roundStore: RoundStore,
-    spinStore: SpinStore,
+    gamePlayerDataRepository: GamePlayerDataRepository,
+    currentRoundRepository: CurrentRoundRepository,
+    idempotencyRepository: IdempotencyRepository,
+    roundRepository: RoundRepository,
+    spinRepository: SpinRepository,
     logger = new RequestLogger(),
     responder = new GameResponseSender(),
     idempotency = new Idempotency()
   ) {
     this.idempotency = idempotency;
     this.context = {
-      adjustWallet,
-      gamePlayerDataStore,
+      gamePlayerDataService: new GamePlayerDataService(gamePlayerDataRepository),
       publisher: new GameEventPublisher(pubSub, serverId),
-      currentRoundStore,
-      idempotencyStore,
-      roundStore,
-      spinStore,
+      idempotencyRepository,
+      roundService: new RoundService(currentRoundRepository, roundRepository),
+      spinService: new SpinService(adjustWallet, currentRoundRepository, roundRepository, spinRepository),
       logger,
       responder
     };
@@ -73,7 +74,7 @@ class GameActions {
     }
 
     if (key) {
-      const stored = await this.context.idempotencyStore.get(key);
+      const stored = await this.context.idempotencyRepository.get(key);
 
       if (stored?.status === 'completed') {
         if (this.hasConflict(payload, stored.response)) {
@@ -128,8 +129,8 @@ class GameActions {
       requestId: payload.requestId,
       idempotencyKey: this.idempotency.key(ws, payload),
       connectionId: ws.id,
-      userId: payload.userId || ws.userId,
-      roomId: payload.roomId || ws.roomId
+      userId: this.payloadUserId(payload) || ws.userId,
+      roomId: this.payloadRoomId(payload) || ws.roomId
     };
   }
 
@@ -149,6 +150,14 @@ class GameActions {
 
     const spin = response as { betAmount?: number };
     return typeof payload.betAmount === 'number' && spin.betAmount !== payload.betAmount;
+  }
+
+  private payloadUserId(payload: IncomingMessagePayload): string | null {
+    return payload.action === 'join' ? payload.userId : null;
+  }
+
+  private payloadRoomId(payload: IncomingMessagePayload): string | null {
+    return payload.action === 'join' ? payload.roomId : null;
   }
 }
 

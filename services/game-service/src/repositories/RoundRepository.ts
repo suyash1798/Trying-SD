@@ -1,7 +1,7 @@
 import { PrismaClient } from '@prisma/client';
-import { ActiveRound } from './models/Round';
+import { ActiveRound } from '../game/models/Round';
 
-class RoundStore {
+class RoundRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
   async saveStarted(round: ActiveRound): Promise<void> {
@@ -28,4 +28,4 @@ class RoundStore {
   }
 }
 
-export default RoundStore;
+export default RoundRepository;

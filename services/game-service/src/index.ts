@@ -2,11 +2,11 @@ import { Server as HttpServer } from 'http';
 import { PrismaClient } from '@prisma/client';
 import config from './config';
 import { createApp } from './http';
-import CurrentRoundStore from './game/CurrentRoundStore';
-import GamePlayerDataStore from './game/GamePlayerDataStore';
-import IdempotencyStore from './game/IdempotencyStore';
-import RoundStore from './game/RoundStore';
-import SpinStore from './game/SpinStore';
+import CurrentRoundRepository from './repositories/CurrentRoundRepository';
+import GamePlayerDataRepository from './repositories/GamePlayerDataRepository';
+import IdempotencyRepository from './repositories/IdempotencyRepository';
+import RoundRepository from './repositories/RoundRepository';
+import SpinRepository from './repositories/SpinRepository';
 import DynamoDbClient from './infra/DynamoDbClient';
 import RedisKeyValueClient from './infra/RedisKeyValueClient';
 import RedisPubSub from './infra/redisPubSub';
@@ -22,14 +22,14 @@ class GameServiceApp {
     region: config.awsRegion,
     endpoint: config.dynamoDbEndpoint
   });
-  private readonly gamePlayerDataStore = new GamePlayerDataStore(
+  private readonly gamePlayerDataRepository = new GamePlayerDataRepository(
     this.dynamoDb,
     config.gamePlayerDataTable
   );
-  private readonly currentRoundStore = new CurrentRoundStore(this.redisKeyValue);
-  private readonly roundStore = new RoundStore(this.prisma);
-  private readonly spinStore = new SpinStore(this.prisma);
-  private readonly idempotencyStore = new IdempotencyStore(
+  private readonly currentRoundRepository = new CurrentRoundRepository(this.redisKeyValue);
+  private readonly roundRepository = new RoundRepository(this.prisma);
+  private readonly spinRepository = new SpinRepository(this.prisma);
+  private readonly idempotencyRepository = new IdempotencyRepository(
     this.redisKeyValue,
     Number(config.idempotencyTtlSeconds)
   );
@@ -41,7 +41,7 @@ class GameServiceApp {
     await this.pubSub.connect();
     await this.redisKeyValue.connect();
     await this.prisma.$connect();
-    await this.gamePlayerDataStore.ensureTable();
+    await this.gamePlayerDataRepository.ensureTable();
 
     this.httpServer = createApp().listen(
       config.port,
@@ -53,11 +53,11 @@ class GameServiceApp {
       heartbeatIntervalMs: Number(config.heartbeatIntervalMs),
       adjustWallet: (userId, amount) => this.walletClient.adjustBalance(userId, amount),
       pubSub: this.pubSub,
-      gamePlayerDataStore: this.gamePlayerDataStore,
-      currentRoundStore: this.currentRoundStore,
-      idempotencyStore: this.idempotencyStore,
-      roundStore: this.roundStore,
-      spinStore: this.spinStore,
+      gamePlayerDataRepository: this.gamePlayerDataRepository,
+      currentRoundRepository: this.currentRoundRepository,
+      idempotencyRepository: this.idempotencyRepository,
+      roundRepository: this.roundRepository,
+      spinRepository: this.spinRepository,
       serverId: config.serverId
     });
 

@@ -5,9 +5,9 @@ import {
 } from '@aws-sdk/client-dynamodb';
 import { PutCommand } from '@aws-sdk/lib-dynamodb';
 import DynamoDbClient from '../infra/DynamoDbClient';
-import { GamePlayerData } from './models/GamePlayerData';
+import { GamePlayerData } from '../game/models/GamePlayerData';
 
-class GamePlayerDataStore {
+class GamePlayerDataRepository {
   constructor(
     private readonly dynamoDb: DynamoDbClient,
     private readonly tableName: string
@@ -47,4 +47,4 @@ class GamePlayerDataStore {
   }
 }
 
-export default GamePlayerDataStore;
+export default GamePlayerDataRepository;

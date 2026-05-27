@@ -1,10 +1,10 @@
 import AppError from '../../errors/AppError';
-import { IncomingMessagePayload, GameSocket } from '../../types/websocket';
+import { GameSocket, PersistentDataPayload } from '../../types/websocket';
 import { ActionContext, remember, RequestTrace } from './types';
 
 export async function persistentDataAction(
   ws: GameSocket,
-  payload: IncomingMessagePayload,
+  payload: PersistentDataPayload,
   context: ActionContext,
   trace: RequestTrace,
   startedAt: number,
@@ -12,54 +12,32 @@ export async function persistentDataAction(
 ): Promise<void> {
   const { requestId, gameId, data } = payload;
 
-  if (!requestId) {
-    context.logger.failed(trace, startedAt, 'requestId required');
-    context.responder.error(ws, 'requestId required');
-    return;
-  }
-
   if (!ws.userId) {
     context.logger.failed(trace, startedAt, 'join required');
     context.responder.error(ws, 'join required', requestId);
     return;
   }
 
-  if (!gameId || !data || Array.isArray(data) || typeof data !== 'object') {
-    context.logger.failed(trace, startedAt, 'gameId and data required');
-    context.responder.error(ws, 'gameId and data required', requestId);
-    return;
-  }
-
-  if (idempotencyKey && !await context.idempotencyStore.reserve(idempotencyKey)) {
+  if (idempotencyKey && !await context.idempotencyRepository.reserve(idempotencyKey)) {
     context.logger.duplicatePending(trace, startedAt);
     context.responder.pending(ws, requestId);
     return;
   }
 
   try {
-    await context.gamePlayerDataStore.save({
+    const response = await context.gamePlayerDataService.save({
       userId: ws.userId,
+      requestId,
       gameId,
       data
     });
 
-    const response = {
-      status: 'ok',
-      action: 'persistent_data',
-      requestId,
-      gameId
-    };
-
-    await remember(ws, idempotencyKey, response, context.idempotencyStore);
-    context.responder.ok(ws, {
-      action: 'persistent_data',
-      requestId,
-      gameId
-    });
+    await remember(ws, idempotencyKey, response, context.idempotencyRepository);
+    context.responder.ok(ws, response);
     context.logger.completed({ ...trace, gameId }, startedAt);
   } catch (err) {
     if (idempotencyKey) {
-      await context.idempotencyStore.release(idempotencyKey);
+      await context.idempotencyRepository.release(idempotencyKey);
     }
 
     const appErr = err instanceof AppError ? err : new AppError((err as Error).message);
