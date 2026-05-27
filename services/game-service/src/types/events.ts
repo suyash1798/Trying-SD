@@ -6,6 +6,7 @@ export interface PlayerEvent {
   sourceConnectionId: string;
   action?: string;
   balance?: number;
+  roundId?: string;
   spinId?: string;
   betAmount?: number;
   winAmount?: number;

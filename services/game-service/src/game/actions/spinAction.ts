@@ -41,6 +41,9 @@ export async function spinAction(
   ws.pendingRequests.add(idempotencyKey || requestId);
 
   try {
+    const round = await context.currentRoundStore.getOrCreate(ws.userId, ws.roomId);
+    await context.roundStore.saveStarted(round);
+
     const debit = await context.adjustWallet(ws.userId, -betAmount);
     const result = spin(betAmount);
     let balance = debit.balance;
@@ -54,6 +57,7 @@ export async function spinAction(
       status: 'ok',
       action: 'spin',
       requestId,
+      roundId: round.roundId,
       spinId,
       betAmount,
       symbols: result.symbols,
@@ -64,6 +68,7 @@ export async function spinAction(
     await context.spinStore.saveCompletedSpin({
       userId: ws.userId,
       roomId: ws.roomId,
+      roundId: round.roundId,
       requestId,
       spinId,
       betAmount,
@@ -71,11 +76,13 @@ export async function spinAction(
       symbols: result.symbols,
       balance
     });
+    await context.currentRoundStore.incrementSpin(round);
 
     await remember(ws, idempotencyKey, response, context.idempotencyStore);
     context.responder.ok(ws, {
       action: 'spin',
       requestId,
+      roundId: round.roundId,
       spinId,
       betAmount,
       symbols: result.symbols,
@@ -85,6 +92,7 @@ export async function spinAction(
     context.logger.completed({ ...trace, spinId, betAmount }, startedAt);
 
     context.publisher.spinCompleted(ws, {
+      roundId: round.roundId,
       spinId,
       betAmount,
       winAmount: result.winAmount,

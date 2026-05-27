@@ -6,6 +6,7 @@ interface PlayerJoinedInput {
 }
 
 interface SpinCompletedInput {
+  roundId: string;
   spinId: string;
   betAmount: number;
   winAmount: number;
@@ -46,13 +47,14 @@ class GameEventPublisher {
       return;
     }
 
-    const { spinId, betAmount, winAmount, symbols, balance, requestId } = data;
+    const { roundId, spinId, betAmount, winAmount, symbols, balance, requestId } = data;
 
     await this.pubSub.publish({
       type: "player_action",
       action: "spin",
       userId: ws.userId,
       roomId: ws.roomId,
+      roundId,
       spinId,
       betAmount,
       winAmount,

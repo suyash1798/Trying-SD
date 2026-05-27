@@ -3,10 +3,13 @@ import RequestLogger from '../observability/RequestLogger';
 import { IncomingMessagePayload, GameSocket } from '../types/websocket';
 import { joinAction } from './actions/joinAction';
 import { spinAction } from './actions/spinAction';
+import { endRoundAction } from './actions/endRoundAction';
+import CurrentRoundStore from './CurrentRoundStore';
 import GameEventPublisher from './GameEventPublisher';
 import GameResponseSender from './GameResponseSender';
 import IdempotencyStore from './IdempotencyStore';
 import Idempotency from './idempotency';
+import RoundStore from './RoundStore';
 import SpinStore from './SpinStore';
 import {
   ActionContext,
@@ -24,7 +27,9 @@ class GameActions {
     adjustWallet: WalletAdjustHandler,
     pubSub: RedisPubSub,
     serverId: string,
+    currentRoundStore: CurrentRoundStore,
     idempotencyStore: IdempotencyStore,
+    roundStore: RoundStore,
     spinStore: SpinStore,
     logger = new RequestLogger(),
     responder = new GameResponseSender(),
@@ -34,7 +39,9 @@ class GameActions {
     this.context = {
       adjustWallet,
       publisher: new GameEventPublisher(pubSub, serverId),
+      currentRoundStore,
       idempotencyStore,
+      roundStore,
       spinStore,
       logger,
       responder
@@ -94,6 +101,11 @@ class GameActions {
 
     if (action === 'spin') {
       await spinAction(ws, payload, this.context, trace, startedAt, key);
+      return;
+    }
+
+    if (action === 'end_round') {
+      await endRoundAction(ws, payload, this.context, trace, startedAt, key);
       return;
     }
 

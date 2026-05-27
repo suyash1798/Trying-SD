@@ -1,7 +1,9 @@
 import RequestLogger from '../../observability/RequestLogger';
 import GameEventPublisher from '../GameEventPublisher';
 import GameResponseSender from '../GameResponseSender';
+import CurrentRoundStore from '../CurrentRoundStore';
 import IdempotencyStore from '../IdempotencyStore';
+import RoundStore from '../RoundStore';
 import SpinStore from '../SpinStore';
 import { WalletAdjustResponse } from '../../types/wallet';
 import { GameSocket } from '../../types/websocket';
@@ -19,7 +21,9 @@ export type RequestTrace = Record<string, unknown> & {
 export interface ActionContext {
   adjustWallet: WalletAdjustHandler;
   publisher: GameEventPublisher;
+  currentRoundStore: CurrentRoundStore;
   idempotencyStore: IdempotencyStore;
+  roundStore: RoundStore;
   spinStore: SpinStore;
   logger: RequestLogger;
   responder: GameResponseSender;

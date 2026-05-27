@@ -11,6 +11,7 @@ model GameSpin {
   id        BigInt   @id @default(autoincrement())
   userId    String   @map("user_id")
   roomId    String   @map("room_id")
+  roundId   String   @map("round_id")
   requestId String   @map("request_id")
   spinId    String   @map("spin_id")
   betAmount Int      @map("bet_amount")
@@ -18,7 +19,21 @@ model GameSpin {
   symbols   Json
   balance   Int
   createdAt DateTime @default(now()) @map("created_at")
+  round     GameRound @relation(fields: [roundId], references: [roundId])
 
   @@unique([userId, spinId])
   @@map("game_spins")
+}
+
+model GameRound {
+  id          BigInt     @id @default(autoincrement())
+  roundId     String     @unique @map("round_id")
+  userId      String     @map("user_id")
+  roomId      String     @map("room_id")
+  status      String
+  createdAt   DateTime   @default(now()) @map("created_at")
+  completedAt DateTime?  @map("completed_at")
+  spins       GameSpin[]
+
+  @@map("game_rounds")
 }

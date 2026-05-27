@@ -1,6 +1,7 @@
 export interface CompletedSpin {
   userId: string;
   roomId: string;
+  roundId: string;
   requestId: string;
   spinId: string;
   betAmount: number;

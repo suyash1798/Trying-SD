@@ -2,7 +2,9 @@ import { Server as HttpServer } from 'http';
 import { PrismaClient } from '@prisma/client';
 import config from './config';
 import { createApp } from './http';
+import CurrentRoundStore from './game/CurrentRoundStore';
 import IdempotencyStore from './game/IdempotencyStore';
+import RoundStore from './game/RoundStore';
 import SpinStore from './game/SpinStore';
 import RedisKeyValueClient from './infra/RedisKeyValueClient';
 import RedisPubSub from './infra/redisPubSub';
@@ -14,6 +16,8 @@ class GameServiceApp {
   private readonly pubSub = new RedisPubSub(config.redisUrl, config.redisChannel);
   private readonly redisKeyValue = new RedisKeyValueClient(config.redisUrl);
   private readonly prisma = new PrismaClient();
+  private readonly currentRoundStore = new CurrentRoundStore(this.redisKeyValue);
+  private readonly roundStore = new RoundStore(this.prisma);
   private readonly spinStore = new SpinStore(this.prisma);
   private readonly idempotencyStore = new IdempotencyStore(
     this.redisKeyValue,
@@ -38,7 +42,9 @@ class GameServiceApp {
       heartbeatIntervalMs: Number(config.heartbeatIntervalMs),
       adjustWallet: (userId, amount) => this.walletClient.adjustBalance(userId, amount),
       pubSub: this.pubSub,
+      currentRoundStore: this.currentRoundStore,
       idempotencyStore: this.idempotencyStore,
+      roundStore: this.roundStore,
       spinStore: this.spinStore,
       serverId: config.serverId
     });

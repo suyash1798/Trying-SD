@@ -10,6 +10,10 @@ class Idempotency {
       return this.spinKey(ws, payload);
     }
 
+    if (payload.action === 'end_round') {
+      return this.endRoundKey(ws, payload);
+    }
+
     return null;
   }
 
@@ -29,6 +33,14 @@ class Idempotency {
     }
 
     return `spin:${userId}:${payload.spinId}`;
+  }
+
+  private endRoundKey(ws: GameSocket, payload: IncomingMessagePayload): string | null {
+    if (!payload.requestId || !ws.userId || !ws.roomId) {
+      return null;
+    }
+
+    return `end-round:${ws.userId}:${ws.roomId}:${payload.requestId}`;
   }
 }
 

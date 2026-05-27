@@ -9,6 +9,7 @@ class SpinStore {
       data: {
         userId: spin.userId,
         roomId: spin.roomId,
+        roundId: spin.roundId,
         requestId: spin.requestId,
         spinId: spin.spinId,
         betAmount: spin.betAmount,
