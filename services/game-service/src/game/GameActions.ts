@@ -65,6 +65,12 @@ class GameActions {
       const stored = await this.context.idempotencyStore.get(key);
 
       if (stored?.status === 'completed') {
+        if (this.hasConflict(payload, stored.response)) {
+          this.context.logger.failed(trace, startedAt, 'idempotency conflict');
+          this.context.responder.error(ws, 'idempotency conflict', requestId);
+          return;
+        }
+
         this.context.logger.duplicateCompleted(trace, startedAt);
         const response = stored.response || {};
         this.restoreSocketContext(ws, response);
@@ -113,6 +119,15 @@ class GameActions {
       ws.userId = payload.userId || ws.userId;
       ws.roomId = payload.roomId || ws.roomId;
     }
+  }
+
+  private hasConflict(payload: IncomingMessagePayload, response?: object): boolean {
+    if (payload.action !== 'spin' || !response) {
+      return false;
+    }
+
+    const spin = response as { betAmount?: number };
+    return typeof payload.betAmount === 'number' && spin.betAmount !== payload.betAmount;
   }
 }
 

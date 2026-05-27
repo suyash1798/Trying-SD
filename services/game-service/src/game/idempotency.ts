@@ -1,33 +1,34 @@
-import { createHash } from 'crypto';
 import { IncomingMessagePayload, GameSocket } from '../types/websocket';
 
 class Idempotency {
   public key(ws: GameSocket, payload: IncomingMessagePayload): string | null {
-    if (!payload.requestId) {
+    if (payload.action === 'join') {
+      return this.joinKey(payload);
+    }
+
+    if (payload.action === 'spin') {
+      return this.spinKey(ws, payload);
+    }
+
+    return null;
+  }
+
+  private joinKey(payload: IncomingMessagePayload): string | null {
+    if (!payload.requestId || !payload.userId || !payload.roomId) {
       return null;
     }
 
-    const userId = ws.userId || payload.userId;
-
-    if (!userId) {
-      return payload.requestId;
-    }
-
-    return `${userId}-${this.payloadHash(payload)}-${payload.requestId}`;
+    return `join:${payload.userId}:${payload.roomId}:${payload.requestId}`;
   }
 
-  private payloadHash(payload: IncomingMessagePayload): string {
-    const businessPayload = {
-      action: payload.action,
-      roomId: payload.roomId,
-      spinId: payload.spinId,
-      betAmount: payload.betAmount
-    };
+  private spinKey(ws: GameSocket, payload: IncomingMessagePayload): string | null {
+    const userId = ws.userId || payload.userId;
 
-    return createHash('sha256')
-      .update(JSON.stringify(businessPayload))
-      .digest('hex')
-      .slice(0, 16);
+    if (!userId || !payload.spinId) {
+      return null;
+    }
+
+    return `spin:${userId}:${payload.spinId}`;
   }
 }
 
