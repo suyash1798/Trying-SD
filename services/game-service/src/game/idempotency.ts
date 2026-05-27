@@ -14,6 +14,10 @@ class Idempotency {
       return this.endRoundKey(ws, payload);
     }
 
+    if (payload.action === 'persistent_data') {
+      return this.persistentDataKey(ws, payload);
+    }
+
     return null;
   }
 
@@ -41,6 +45,14 @@ class Idempotency {
     }
 
     return `end-round:${ws.userId}:${ws.roomId}:${payload.requestId}`;
+  }
+
+  private persistentDataKey(ws: GameSocket, payload: IncomingMessagePayload): string | null {
+    if (!payload.requestId || !ws.userId || !payload.gameId) {
+      return null;
+    }
+
+    return `persistent-data:${ws.userId}:${payload.gameId}:${payload.requestId}`;
   }
 }
 

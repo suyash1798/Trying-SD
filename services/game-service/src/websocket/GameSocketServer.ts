@@ -3,6 +3,7 @@ import { Server as HttpServer } from 'http';
 import { RawData, WebSocketServer } from 'ws';
 import GameActions, { WalletAdjustHandler } from '../game/GameActions';
 import CurrentRoundStore from '../game/CurrentRoundStore';
+import GamePlayerDataStore from '../game/GamePlayerDataStore';
 import IdempotencyStore from '../game/IdempotencyStore';
 import RoundStore from '../game/RoundStore';
 import SpinStore from '../game/SpinStore';
@@ -25,6 +26,7 @@ class GameSocketServer {
     heartbeatIntervalMs,
     adjustWallet,
     pubSub,
+    gamePlayerDataStore,
     currentRoundStore,
     idempotencyStore,
     roundStore,
@@ -35,6 +37,7 @@ class GameSocketServer {
     heartbeatIntervalMs: number;
     adjustWallet: WalletAdjustHandler;
     pubSub: RedisPubSub;
+    gamePlayerDataStore: GamePlayerDataStore;
     currentRoundStore: CurrentRoundStore;
     idempotencyStore: IdempotencyStore;
     roundStore: RoundStore;
@@ -48,6 +51,7 @@ class GameSocketServer {
       adjustWallet,
       pubSub,
       serverId,
+      gamePlayerDataStore,
       currentRoundStore,
       idempotencyStore,
       roundStore,

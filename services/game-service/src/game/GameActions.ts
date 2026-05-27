@@ -4,8 +4,10 @@ import { IncomingMessagePayload, GameSocket } from '../types/websocket';
 import { joinAction } from './actions/joinAction';
 import { spinAction } from './actions/spinAction';
 import { endRoundAction } from './actions/endRoundAction';
+import { persistentDataAction } from './actions/persistentDataAction';
 import CurrentRoundStore from './CurrentRoundStore';
 import GameEventPublisher from './GameEventPublisher';
+import GamePlayerDataStore from './GamePlayerDataStore';
 import GameResponseSender from './GameResponseSender';
 import IdempotencyStore from './IdempotencyStore';
 import Idempotency from './idempotency';
@@ -27,6 +29,7 @@ class GameActions {
     adjustWallet: WalletAdjustHandler,
     pubSub: RedisPubSub,
     serverId: string,
+    gamePlayerDataStore: GamePlayerDataStore,
     currentRoundStore: CurrentRoundStore,
     idempotencyStore: IdempotencyStore,
     roundStore: RoundStore,
@@ -38,6 +41,7 @@ class GameActions {
     this.idempotency = idempotency;
     this.context = {
       adjustWallet,
+      gamePlayerDataStore,
       publisher: new GameEventPublisher(pubSub, serverId),
       currentRoundStore,
       idempotencyStore,
@@ -106,6 +110,11 @@ class GameActions {
 
     if (action === 'end_round') {
       await endRoundAction(ws, payload, this.context, trace, startedAt, key);
+      return;
+    }
+
+    if (action === 'persistent_data') {
+      await persistentDataAction(ws, payload, this.context, trace, startedAt, key);
       return;
     }
 

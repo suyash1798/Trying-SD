@@ -13,6 +13,8 @@ export interface IncomingMessagePayload {
   action: GameAction;
   userId?: string;
   roomId?: string;
+  gameId?: string;
+  data?: Record<string, unknown>;
   roundId?: string;
   spinId?: string;
   betAmount?: number;
@@ -22,7 +24,8 @@ export interface IncomingMessagePayload {
 enum GameAction{
   JOIN = 'join',
   SPIN = 'spin',
-  END_ROUND = 'end_round'
+  END_ROUND = 'end_round',
+  PERSISTENT_DATA = 'persistent_data'
 }
 
 export type OutgoingPayload = Record<string, unknown>;

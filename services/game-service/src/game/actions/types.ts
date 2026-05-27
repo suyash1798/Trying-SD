@@ -1,5 +1,6 @@
 import RequestLogger from '../../observability/RequestLogger';
 import GameEventPublisher from '../GameEventPublisher';
+import GamePlayerDataStore from '../GamePlayerDataStore';
 import GameResponseSender from '../GameResponseSender';
 import CurrentRoundStore from '../CurrentRoundStore';
 import IdempotencyStore from '../IdempotencyStore';
@@ -20,6 +21,7 @@ export type RequestTrace = Record<string, unknown> & {
 
 export interface ActionContext {
   adjustWallet: WalletAdjustHandler;
+  gamePlayerDataStore: GamePlayerDataStore;
   publisher: GameEventPublisher;
   currentRoundStore: CurrentRoundStore;
   idempotencyStore: IdempotencyStore;

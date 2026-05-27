@@ -6,5 +6,8 @@ export default {
   redisChannel: process.env.REDIS_CHANNEL || 'game-events',
   idempotencyTtlSeconds: process.env.IDEMPOTENCY_TTL_SECONDS || 300,
   databaseUrl: process.env.DATABASE_URL || 'postgres://postgres:postgres@postgres:5432/game_service',
+  awsRegion: process.env.AWS_REGION || 'ap-south-1',
+  dynamoDbEndpoint: process.env.DYNAMODB_ENDPOINT || undefined,
+  gamePlayerDataTable: process.env.GAME_PLAYER_DATA_TABLE || 'GamePlayerData',
   serverId: process.env.HOSTNAME || `game-service-${process.pid}`
 };

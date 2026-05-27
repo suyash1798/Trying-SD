@@ -3,9 +3,11 @@ import { PrismaClient } from '@prisma/client';
 import config from './config';
 import { createApp } from './http';
 import CurrentRoundStore from './game/CurrentRoundStore';
+import GamePlayerDataStore from './game/GamePlayerDataStore';
 import IdempotencyStore from './game/IdempotencyStore';
 import RoundStore from './game/RoundStore';
 import SpinStore from './game/SpinStore';
+import DynamoDbClient from './infra/DynamoDbClient';
 import RedisKeyValueClient from './infra/RedisKeyValueClient';
 import RedisPubSub from './infra/redisPubSub';
 import WalletClient from './services/walletClient';
@@ -16,6 +18,14 @@ class GameServiceApp {
   private readonly pubSub = new RedisPubSub(config.redisUrl, config.redisChannel);
   private readonly redisKeyValue = new RedisKeyValueClient(config.redisUrl);
   private readonly prisma = new PrismaClient();
+  private readonly dynamoDb = new DynamoDbClient({
+    region: config.awsRegion,
+    endpoint: config.dynamoDbEndpoint
+  });
+  private readonly gamePlayerDataStore = new GamePlayerDataStore(
+    this.dynamoDb,
+    config.gamePlayerDataTable
+  );
   private readonly currentRoundStore = new CurrentRoundStore(this.redisKeyValue);
   private readonly roundStore = new RoundStore(this.prisma);
   private readonly spinStore = new SpinStore(this.prisma);
@@ -31,6 +41,7 @@ class GameServiceApp {
     await this.pubSub.connect();
     await this.redisKeyValue.connect();
     await this.prisma.$connect();
+    await this.gamePlayerDataStore.ensureTable();
 
     this.httpServer = createApp().listen(
       config.port,
@@ -42,6 +53,7 @@ class GameServiceApp {
       heartbeatIntervalMs: Number(config.heartbeatIntervalMs),
       adjustWallet: (userId, amount) => this.walletClient.adjustBalance(userId, amount),
       pubSub: this.pubSub,
+      gamePlayerDataStore: this.gamePlayerDataStore,
       currentRoundStore: this.currentRoundStore,
       idempotencyStore: this.idempotencyStore,
       roundStore: this.roundStore,
