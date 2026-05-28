@@ -4,8 +4,8 @@ import { IncomingMessagePayload } from '../types/websocket';
 const joinSchema = z.object({
   action: z.literal('join'),
   requestId: z.string().min(1),
-  userId: z.string().min(1),
-  roomId: z.string().min(1)
+  roomId: z.string().min(1),
+  token: z.string().min(1)
 });
 
 const spinSchema = z.object({

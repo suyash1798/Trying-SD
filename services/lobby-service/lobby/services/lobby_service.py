@@ -3,7 +3,6 @@ from uuid import uuid4
 from fastapi import HTTPException
 
 from lobby.database import connection
-from lobby.models import LoadGameRequest
 from lobby.repositories import RoomRepository
 
 MAX_ROOM_PLAYERS = 5
@@ -13,7 +12,7 @@ class LobbyService:
     def __init__(self):
         self.rooms = RoomRepository()
 
-    def load_game(self, game_id: str, request: LoadGameRequest):
+    def load_game(self, game_id: str, player_id: str):
         with connection() as conn:
             with conn.transaction():
                 room = self.rooms.find_available(conn, game_id, MAX_ROOM_PLAYERS)
@@ -21,7 +20,7 @@ class LobbyService:
                 if not room:
                     room = self.rooms.create(conn, self._new_room_id(), game_id)
 
-                self.rooms.add_player(conn, room["room_id"], request.userId)
+                self.rooms.add_player(conn, room["room_id"], player_id)
                 self.rooms.close_if_full(conn, room["room_id"], MAX_ROOM_PLAYERS)
                 return self._room_response(conn, room["room_id"])
 

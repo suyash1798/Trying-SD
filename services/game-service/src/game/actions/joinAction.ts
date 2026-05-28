@@ -11,6 +11,12 @@ export async function joinAction(
 ): Promise<void> {
   const { userId, roomId, requestId } = payload;
 
+  if (!userId) {
+    context.logger.failed(trace, startedAt, 'invalid token');
+    context.responder.error(ws, 'invalid token', requestId);
+    return;
+  }
+
   ws.userId = userId;
   ws.roomId = roomId;
 

@@ -1,10 +1,10 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Header
 
-from lobby.models import LoadGameRequest
-from lobby.services import LobbyService
+from lobby.services import AuthService, LobbyService
 
 
 router = APIRouter()
+auth_service = AuthService()
 lobby_service = LobbyService()
 
 
@@ -14,11 +14,14 @@ def health():
 
 
 @router.post("/games/{game_id}/load")
-def load_game(game_id: str, request: LoadGameRequest):
-    return lobby_service.load_game(game_id, request)
+def load_game(
+    game_id: str,
+    authorization: str | None = Header(default=None),
+):
+    player_id = auth_service.player_id(authorization)
+    return lobby_service.load_game(game_id, player_id)
 
 
 @router.get("/rooms/{room_id}")
 def get_room(room_id: str):
     return lobby_service.get_room(room_id)
-

@@ -12,8 +12,9 @@ export interface GameSocket extends WebSocket {
 export interface JoinPayload {
   action: 'join';
   requestId: string;
-  userId: string;
   roomId: string;
+  token: string;
+  userId?: string;
 }
 
 export interface SpinPayload {

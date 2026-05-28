@@ -7,7 +7,8 @@ The system uses WebSockets for game actions, Redis for realtime fanout and short
 ## Services
 
 ```text
- lobby-service      HTTP room creation before WebSocket join
+user-service       Device identity and JWT issuing
+lobby-service      HTTP room assignment before WebSocket join
 game-service       WebSocket game API
 wallet-service     Wallet ledger, deduct/credit, jackpot contribution
 redis              Pub/Sub, idempotency, current round state
@@ -56,18 +57,39 @@ Health checks:
 curl http://localhost:3000
 curl http://localhost:4000
 curl http://localhost:5000
+curl http://localhost:6000
+```
+
+## Device Login
+
+Create or fetch a player for a device:
+
+```bash
+curl -X POST http://localhost:6000/devices \
+  -H "Content-Type: application/json" \
+  -d '{"deviceId":"device-1"}'
+```
+
+Response:
+
+```json
+{
+  "playerId": "player-...",
+  "accessToken": "...",
+  "tokenType": "Bearer",
+  "expiresIn": 86400
+}
 ```
 
 ## Lobby Flow
 
 Load a game before opening the WebSocket connection.
 
-Lobby will add the player to an existing open room for the game if the room has fewer than 5 players. If no room is available, it creates a new room.
+Lobby reads the player from the JWT, then adds the player to an existing open room for the game if the room has fewer than 5 players. If no room is available, it creates a new room.
 
 ```bash
 curl -X POST http://localhost:5000/games/slot-1/load \
-  -H "Content-Type: application/json" \
-  -d '{"userId":"user-1"}'
+  -H "Authorization: Bearer ACCESS_TOKEN"
 ```
 
 Response:
@@ -79,7 +101,7 @@ Response:
   "status": "OPEN",
   "capacity": 5,
   "playerCount": 1,
-  "players": ["user-1"]
+  "players": ["player-..."]
 }
 ```
 
@@ -87,8 +109,7 @@ Call the same endpoint for another player. They will join the same room until it
 
 ```bash
 curl -X POST http://localhost:5000/games/slot-1/load \
-  -H "Content-Type: application/json" \
-  -d '{"userId":"user-2"}'
+  -H "Authorization: Bearer ACCESS_TOKEN_2"
 ```
 
 Then connect to your configured WebSocket URL and join with the returned `roomId`.
@@ -111,14 +132,14 @@ ws://game-service:3000
 
 ### Join Room
 
-Join must happen before game actions. The socket stores `userId` and `roomId`.
+Join must happen before game actions. The socket stores authenticated `userId` and `roomId`.
 
 ```json
 {
   "action": "join",
   "requestId": "join-1",
-  "userId": "user-1",
-  "roomId": "room-1"
+  "roomId": "room-1",
+  "token": "ACCESS_TOKEN"
 }
 ```
 
@@ -188,10 +209,12 @@ Current keys:
 
 ```text
 join:{userId}:{roomId}:{requestId}
-spin:{userId}:{spinId}
+spin:{userId}:{requestId}
 end-round:{userId}:{roomId}:{requestId}
 persistent-data:{userId}:{gameId}:{requestId}
 ```
+
+For spin, `requestId` protects retries for a short Redis window. `spinId` is persisted with the spin record and scoped inside the active round.
 
 State shape:
 

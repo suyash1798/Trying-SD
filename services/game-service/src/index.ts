@@ -10,11 +10,13 @@ import SpinRepository from './repositories/SpinRepository';
 import DynamoDbClient from './infra/DynamoDbClient';
 import RedisKeyValueClient from './infra/RedisKeyValueClient';
 import RedisPubSub from './infra/redisPubSub';
+import JwtTokenVerifier from './infra/JwtTokenVerifier';
 import WalletClient from './services/walletClient';
 import GameSocketServer from './websocket/GameSocketServer';
 
 class GameServiceApp {
   private readonly walletClient = new WalletClient(config.walletUrl);
+  private readonly tokenVerifier = new JwtTokenVerifier(config.jwtSecret);
   private readonly pubSub = new RedisPubSub(config.redisUrl, config.redisChannel);
   private readonly redisKeyValue = new RedisKeyValueClient(config.redisUrl);
   private readonly prisma = new PrismaClient();
@@ -59,6 +61,7 @@ class GameServiceApp {
       idempotencyRepository: this.idempotencyRepository,
       roundRepository: this.roundRepository,
       spinRepository: this.spinRepository,
+      tokenVerifier: this.tokenVerifier,
       serverId: config.serverId
     });
 

@@ -29,6 +29,10 @@ class Idempotency {
   }
 
   private joinKey(payload: JoinPayload): string {
+    if (!payload.userId) {
+      return `join:unknown:${payload.roomId}:${payload.requestId}`;
+    }
+
     return `join:${payload.userId}:${payload.roomId}:${payload.requestId}`;
   }
 

@@ -8,6 +8,7 @@ import IdempotencyRepository from '../repositories/IdempotencyRepository';
 import RoundRepository from '../repositories/RoundRepository';
 import SpinRepository from '../repositories/SpinRepository';
 import RedisPubSub from '../infra/redisPubSub';
+import JwtTokenVerifier from '../infra/JwtTokenVerifier';
 import { log } from '../observability/logger';
 import { PlayerEvent } from '../types/events';
 import { GameSocket, IncomingMessagePayload } from '../types/websocket';
@@ -33,6 +34,7 @@ class GameSocketServer {
     idempotencyRepository,
     roundRepository,
     spinRepository,
+    tokenVerifier,
     serverId
   }: {
     server: HttpServer;
@@ -45,6 +47,7 @@ class GameSocketServer {
     idempotencyRepository: IdempotencyRepository;
     roundRepository: RoundRepository;
     spinRepository: SpinRepository;
+    tokenVerifier: JwtTokenVerifier;
     serverId: string;
   }) {
     this.wss = new WebSocketServer({ server });
@@ -59,7 +62,8 @@ class GameSocketServer {
       currentRoundRepository,
       idempotencyRepository,
       roundRepository,
-      spinRepository
+      spinRepository,
+      tokenVerifier
     );
   }
 

@@ -16,6 +16,7 @@ import SpinRepository from '../repositories/SpinRepository';
 import GamePlayerDataService from './services/GamePlayerDataService';
 import RoundService from './services/RoundService';
 import SpinService from './services/SpinService';
+import JwtTokenVerifier from '../infra/JwtTokenVerifier';
 import {
   ActionContext,
   RequestTrace,
@@ -39,6 +40,7 @@ class GameActions {
     idempotencyRepository: IdempotencyRepository,
     roundRepository: RoundRepository,
     spinRepository: SpinRepository,
+    private readonly tokenVerifier: JwtTokenVerifier,
     logger = new RequestLogger(),
     responder = new GameResponseSender(),
     idempotency = new Idempotency()
@@ -63,6 +65,13 @@ class GameActions {
 
   async handle(ws: GameSocket, payload: IncomingMessagePayload): Promise<void> {
     const startedAt = Date.now();
+    try {
+      this.attachPlayerId(payload);
+    } catch (err) {
+      this.context.responder.error(ws, 'invalid token', payload.requestId);
+      return;
+    }
+
     const trace = this.trace(ws, payload);
     const { action, requestId } = payload;
     const key = this.idempotency.key(ws, payload);
@@ -142,6 +151,14 @@ class GameActions {
     };
   }
 
+  private attachPlayerId(payload: IncomingMessagePayload): void {
+    if (payload.action !== 'join') {
+      return;
+    }
+
+    payload.userId = this.tokenVerifier.playerId(payload.token);
+  }
+
   private restoreSocketContext(ws: GameSocket, response: object): void {
     const payload = response as { action?: string; userId?: string; roomId?: string };
 
@@ -166,7 +183,7 @@ class GameActions {
   }
 
   private payloadUserId(payload: IncomingMessagePayload): string | null {
-    return payload.action === 'join' ? payload.userId : null;
+    return payload.action === 'join' ? payload.userId || null : null;
   }
 
   private payloadRoomId(payload: IncomingMessagePayload): string | null {

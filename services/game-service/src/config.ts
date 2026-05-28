@@ -9,5 +9,6 @@ export default {
   awsRegion: process.env.AWS_REGION || 'ap-south-1',
   dynamoDbEndpoint: process.env.DYNAMODB_ENDPOINT || undefined,
   gamePlayerDataTable: process.env.GAME_PLAYER_DATA_TABLE || 'GamePlayerData',
+  jwtSecret: process.env.JWT_SECRET || 'dev-secret-change-me',
   serverId: process.env.HOSTNAME || `game-service-${process.pid}`
 };
