@@ -1,7 +1,7 @@
 import { randomUUID } from 'crypto';
 import { Server as HttpServer } from 'http';
 import { RawData, WebSocketServer } from 'ws';
-import GameActions, { WalletAdjustHandler } from '../game/GameActions';
+import GameActions, { WalletCreditHandler, WalletDeductHandler } from '../game/GameActions';
 import CurrentRoundRepository from '../repositories/CurrentRoundRepository';
 import GamePlayerDataRepository from '../repositories/GamePlayerDataRepository';
 import IdempotencyRepository from '../repositories/IdempotencyRepository';
@@ -25,7 +25,8 @@ class GameSocketServer {
   constructor({
     server,
     heartbeatIntervalMs,
-    adjustWallet,
+    deductWallet,
+    creditWallet,
     pubSub,
     gamePlayerDataRepository,
     currentRoundRepository,
@@ -36,7 +37,8 @@ class GameSocketServer {
   }: {
     server: HttpServer;
     heartbeatIntervalMs: number;
-    adjustWallet: WalletAdjustHandler;
+    deductWallet: WalletDeductHandler;
+    creditWallet: WalletCreditHandler;
     pubSub: RedisPubSub;
     gamePlayerDataRepository: GamePlayerDataRepository;
     currentRoundRepository: CurrentRoundRepository;
@@ -49,7 +51,8 @@ class GameSocketServer {
     this.heartbeat = new Heartbeat(this.wss, heartbeatIntervalMs);
     this.pubSub = pubSub;
     this.actions = new GameActions(
-      adjustWallet,
+      deductWallet,
+      creditWallet,
       pubSub,
       serverId,
       gamePlayerDataRepository,

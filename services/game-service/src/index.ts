@@ -51,7 +51,8 @@ class GameServiceApp {
     this.gameSocketServer = new GameSocketServer({
       server: this.httpServer,
       heartbeatIntervalMs: Number(config.heartbeatIntervalMs),
-      adjustWallet: (userId, amount) => this.walletClient.adjustBalance(userId, amount),
+      deductWallet: (request) => this.walletClient.deduct(request),
+      creditWallet: (request) => this.walletClient.credit(request),
       pubSub: this.pubSub,
       gamePlayerDataRepository: this.gamePlayerDataRepository,
       currentRoundRepository: this.currentRoundRepository,

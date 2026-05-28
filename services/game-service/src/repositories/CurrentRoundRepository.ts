@@ -7,7 +7,7 @@ class CurrentRoundRepository {
 
   async get(userId: string, roomId: string): Promise<ActiveRound | null> {
     const value = await this.redis.get(this.key(userId, roomId));
-    return value ? JSON.parse(value) as ActiveRound : null;
+    return value ? this.normalize(JSON.parse(value) as Partial<ActiveRound>) : null;
   }
 
   async getOrCreate(userId: string, roomId: string): Promise<ActiveRound> {
@@ -22,15 +22,20 @@ class CurrentRoundRepository {
       userId,
       roomId,
       status: 'ACTIVE',
-      spinCount: 0
+      spinCount: 0,
+      lastSpinId: 0
     };
 
     await this.save(round);
     return round;
   }
 
-  async incrementSpin(round: ActiveRound): Promise<ActiveRound> {
-    const updated = { ...round, spinCount: round.spinCount + 1 };
+  async recordSpin(round: ActiveRound, spinId: number): Promise<ActiveRound> {
+    const updated = {
+      ...round,
+      spinCount: round.spinCount + 1,
+      lastSpinId: spinId
+    };
     await this.save(updated);
     return updated;
   }
@@ -48,6 +53,17 @@ class CurrentRoundRepository {
 
   private async save(round: ActiveRound): Promise<void> {
     await this.redis.set(this.key(round.userId, round.roomId), JSON.stringify(round));
+  }
+
+  private normalize(round: Partial<ActiveRound>): ActiveRound {
+    return {
+      roundId: round.roundId || '',
+      userId: round.userId || '',
+      roomId: round.roomId || '',
+      status: 'ACTIVE',
+      spinCount: round.spinCount || 0,
+      lastSpinId: round.lastSpinId || round.spinCount || 0
+    };
   }
 
   private key(userId: string, roomId: string): string {

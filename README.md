@@ -8,7 +8,7 @@ The system uses WebSockets for game actions, Redis for realtime fanout and short
 
 ```text
 game-service       WebSocket game API
-wallet-service     Balance adjustment API
+wallet-service     Wallet ledger, deduct/credit, jackpot contribution
 redis              Pub/Sub, idempotency, current round state
 postgres           Durable round/spin history
 dynamodb           Flexible game-player persistent data
@@ -93,6 +93,7 @@ The first spin creates an active round if one does not exist. More spins reuse t
 {
   "action": "spin",
   "requestId": "req-1",
+  "gameId": "slot-1",
   "spinId": "spin-1",
   "betAmount": 10
 }
@@ -106,6 +107,7 @@ Response includes `roundId`:
   "action": "spin",
   "requestId": "req-1",
   "roundId": "...",
+  "gameId": "slot-1",
   "spinId": "spin-1",
   "betAmount": 10,
   "symbols": ["CHERRY", "LEMON", "BELL"],
@@ -193,6 +195,10 @@ The actual WebSocket object is never stored in Redis.
 Postgres stores durable game history:
 
 ```text
+wallets
+wallet_transactions
+jackpot_configs
+jackpot_contributions
 game_rounds
 game_spins
 ```
@@ -284,6 +290,7 @@ docker compose --profile loadtest run --rm --build \
   -e TARGET_URL=ws://game-service:3000 \
   -e ACTION=spin \
   -e JOIN_ON_OPEN=true \
+  -e GAME_ID=slot-1 \
   -e CONNECTIONS=100 \
   -e ROOMS=10 \
   -e BET_AMOUNT=10 \
@@ -333,3 +340,28 @@ ECS        -> game-service and wallet-service tasks
 ```
 
 Keep `ws-load-tester` count at `0` when not testing to avoid unnecessary cost.
+
+## Wallet And Jackpot APIs
+
+Wallet service owns balance changes and jackpot contribution.
+
+Create or update a jackpot for a game:
+
+```bash
+curl -X POST http://localhost:4000/jackpots \
+  -H "Content-Type: application/json" \
+  -d '{
+    "gameId": "slot-1",
+    "jackpotName": "grand",
+    "initialAmount": 10000,
+    "contributionPercent": 2
+  }'
+```
+
+List jackpots:
+
+```bash
+curl http://localhost:4000/jackpots/slot-1
+```
+
+Spin calls wallet `/deduct` internally. If jackpots are configured for that `gameId`, a percentage of the bet is added to each active jackpot.

@@ -19,17 +19,19 @@ import SpinService from './services/SpinService';
 import {
   ActionContext,
   RequestTrace,
-  WalletAdjustHandler
+  WalletCreditHandler,
+  WalletDeductHandler
 } from './actions/types';
 
-export { WalletAdjustHandler };
+export { WalletCreditHandler, WalletDeductHandler };
 
 class GameActions {
   private readonly context: ActionContext;
   private readonly idempotency: Idempotency;
 
   constructor(
-    adjustWallet: WalletAdjustHandler,
+    deductWallet: WalletDeductHandler,
+    creditWallet: WalletCreditHandler,
     pubSub: RedisPubSub,
     serverId: string,
     gamePlayerDataRepository: GamePlayerDataRepository,
@@ -47,7 +49,13 @@ class GameActions {
       publisher: new GameEventPublisher(pubSub, serverId),
       idempotencyRepository,
       roundService: new RoundService(currentRoundRepository, roundRepository),
-      spinService: new SpinService(adjustWallet, currentRoundRepository, roundRepository, spinRepository),
+      spinService: new SpinService(
+        deductWallet,
+        creditWallet,
+        currentRoundRepository,
+        roundRepository,
+        spinRepository
+      ),
       logger,
       responder
     };
@@ -148,8 +156,13 @@ class GameActions {
       return false;
     }
 
-    const spin = response as { betAmount?: number };
-    return typeof payload.betAmount === 'number' && spin.betAmount !== payload.betAmount;
+    const spin = response as { betAmount?: number; gameId?: string; spinId?: string };
+
+    return (
+      spin.betAmount !== payload.betAmount ||
+      spin.gameId !== payload.gameId ||
+      spin.spinId !== payload.spinId
+    );
   }
 
   private payloadUserId(payload: IncomingMessagePayload): string | null {

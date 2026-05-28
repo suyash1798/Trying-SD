@@ -10,6 +10,7 @@ function buildActionPayload(action, client, config) {
   if (action === 'spin') {
     return {
       action,
+      gameId: config.gameId,
       spinId: `${client.userId}-${Date.now()}`,
       betAmount: config.betAmount
     };

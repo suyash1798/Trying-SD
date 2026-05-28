@@ -4,4 +4,5 @@ export interface ActiveRound {
   roomId: string;
   status: 'ACTIVE';
   spinCount: number;
+  lastSpinId: number;
 }

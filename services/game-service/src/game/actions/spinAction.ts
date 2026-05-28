@@ -10,7 +10,7 @@ export async function spinAction(
   startedAt: number,
   idempotencyKey: string | null
 ): Promise<void> {
-  const { requestId, spinId, betAmount } = payload;
+  const { requestId, gameId, spinId, betAmount } = payload;
 
   if (!ws.userId || !ws.roomId) {
     context.logger.failed(trace, startedAt, 'join required');
@@ -31,6 +31,7 @@ export async function spinAction(
       userId: ws.userId,
       roomId: ws.roomId,
       requestId,
+      gameId,
       spinId,
       betAmount
     });

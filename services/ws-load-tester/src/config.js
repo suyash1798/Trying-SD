@@ -14,6 +14,7 @@ module.exports = {
   logIntervalMs: numberFromEnv('LOG_INTERVAL_MS', 5000),
   requestTimeoutMs: numberFromEnv('REQUEST_TIMEOUT_MS', 5000),
   betAmount: numberFromEnv('BET_AMOUNT', 10),
+  gameId: process.env.GAME_ID || 'slot-1',
   userIdPrefix: process.env.USER_ID_PREFIX || 'load-user',
   roomIdPrefix: process.env.ROOM_ID_PREFIX || 'load-room',
   joinOnOpen: process.env.JOIN_ON_OPEN

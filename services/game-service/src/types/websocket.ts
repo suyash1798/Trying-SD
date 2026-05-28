@@ -19,6 +19,7 @@ export interface JoinPayload {
 export interface SpinPayload {
   action: 'spin';
   requestId: string;
+  gameId: string;
   spinId: string;
   betAmount: number;
 }

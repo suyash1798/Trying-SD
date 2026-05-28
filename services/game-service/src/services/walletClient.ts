@@ -1,6 +1,6 @@
 import fetch from 'node-fetch';
 import AppError from '../errors/AppError';
-import { WalletAdjustResponse } from '../types/wallet';
+import { WalletResponse } from '../types/wallet';
 
 class WalletClient {
   private readonly baseUrl: string;
@@ -9,15 +9,60 @@ class WalletClient {
     this.baseUrl = baseUrl;
   }
 
-  async adjustBalance(userId: string, amount: number): Promise<WalletAdjustResponse> {
+  async deduct({
+    userId,
+    amount,
+    transactionId,
+    gameId,
+    referenceId
+  }: {
+    userId: string;
+    amount: number;
+    transactionId: string;
+    gameId: string;
+    referenceId?: string;
+  }): Promise<WalletResponse> {
     if (!userId) {
       throw new Error('userId required');
     }
 
-    const url = `${this.baseUrl}/adjust`;
+    return this.post('/deduct', {
+      userId,
+      amount,
+      transactionId,
+      gameId,
+      referenceId
+    });
+  }
+
+  async credit({
+    userId,
+    amount,
+    transactionId,
+    referenceId
+  }: {
+    userId: string;
+    amount: number;
+    transactionId: string;
+    referenceId?: string;
+  }): Promise<WalletResponse> {
+    if (!userId) {
+      throw new Error('userId required');
+    }
+
+    return this.post('/credit', {
+      userId,
+      amount,
+      transactionId,
+      referenceId
+    });
+  }
+
+  private async post(path: string, payload: object): Promise<WalletResponse> {
+    const url = `${this.baseUrl}${path}`;
     const resp = await fetch(url, {
       method: 'POST',
-      body: JSON.stringify({ userId, amount }),
+      body: JSON.stringify(payload),
       headers: { 'Content-Type': 'application/json' }
     });
 
@@ -26,7 +71,7 @@ class WalletClient {
       throw new AppError('wallet service error', resp.status, { url, detail }, 'wallet-service');
     }
 
-    return resp.json() as Promise<WalletAdjustResponse>;
+    return resp.json() as Promise<WalletResponse>;
   }
 }
 

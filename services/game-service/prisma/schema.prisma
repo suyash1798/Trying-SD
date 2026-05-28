@@ -12,6 +12,7 @@ model GameSpin {
   userId    String   @map("user_id")
   roomId    String   @map("room_id")
   roundId   String   @map("round_id")
+  gameId    String   @map("game_id")
   requestId String   @map("request_id")
   spinId    String   @map("spin_id")
   betAmount Int      @map("bet_amount")
@@ -21,7 +22,7 @@ model GameSpin {
   createdAt DateTime @default(now()) @map("created_at")
   round     GameRound @relation(fields: [roundId], references: [roundId])
 
-  @@unique([userId, spinId])
+  @@unique([userId, roundId, spinId])
   @@map("game_spins")
 }
 

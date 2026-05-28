@@ -39,7 +39,7 @@ class Idempotency {
       return null;
     }
 
-    return `spin:${userId}:${payload.spinId}`;
+    return `spin:${userId}:${payload.requestId}`;
   }
 
   private endRoundKey(ws: GameSocket, payload: EndRoundPayload): string | null {

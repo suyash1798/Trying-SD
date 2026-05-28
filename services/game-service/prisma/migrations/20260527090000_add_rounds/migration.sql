@@ -23,6 +23,7 @@ ON CONFLICT ("round_id") DO NOTHING;
 ALTER TABLE "game_spins"
   ALTER COLUMN "round_id" SET NOT NULL;
 
+
 DO $$
 BEGIN
   IF NOT EXISTS (

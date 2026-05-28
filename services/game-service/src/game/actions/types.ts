@@ -5,10 +5,23 @@ import IdempotencyRepository from '../../repositories/IdempotencyRepository';
 import GamePlayerDataService from '../services/GamePlayerDataService';
 import RoundService from '../services/RoundService';
 import SpinService from '../services/SpinService';
-import { WalletAdjustResponse } from '../../types/wallet';
+import { WalletResponse } from '../../types/wallet';
 import { GameSocket } from '../../types/websocket';
 
-export type WalletAdjustHandler = (userId: string, amount: number) => Promise<WalletAdjustResponse>;
+export type WalletDeductHandler = (request: {
+  userId: string;
+  amount: number;
+  transactionId: string;
+  gameId: string;
+  referenceId?: string;
+}) => Promise<WalletResponse>;
+
+export type WalletCreditHandler = (request: {
+  userId: string;
+  amount: number;
+  transactionId: string;
+  referenceId?: string;
+}) => Promise<WalletResponse>;
 
 export type RequestTrace = Record<string, unknown> & {
   action: string;
