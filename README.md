@@ -7,6 +7,7 @@ The system uses WebSockets for game actions, Redis for realtime fanout and short
 ## Services
 
 ```text
+ lobby-service      HTTP room creation before WebSocket join
 game-service       WebSocket game API
 wallet-service     Wallet ledger, deduct/credit, jackpot contribution
 redis              Pub/Sub, idempotency, current round state
@@ -54,7 +55,43 @@ Health checks:
 ```bash
 curl http://localhost:3000
 curl http://localhost:4000
+curl http://localhost:5000
 ```
+
+## Lobby Flow
+
+Load a game before opening the WebSocket connection.
+
+Lobby will add the player to an existing open room for the game if the room has fewer than 5 players. If no room is available, it creates a new room.
+
+```bash
+curl -X POST http://localhost:5000/games/slot-1/load \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"user-1"}'
+```
+
+Response:
+
+```json
+{
+  "roomId": "room-...",
+  "gameId": "slot-1",
+  "status": "OPEN",
+  "capacity": 5,
+  "playerCount": 1,
+  "players": ["user-1"]
+}
+```
+
+Call the same endpoint for another player. They will join the same room until it reaches 5 players.
+
+```bash
+curl -X POST http://localhost:5000/games/slot-1/load \
+  -H "Content-Type: application/json" \
+  -d '{"userId":"user-2"}'
+```
+
+Then connect to your configured WebSocket URL and join with the returned `roomId`.
 
 ## WebSocket URL
 
