@@ -25,9 +25,9 @@ class KafkaEventProducer {
     }
   }
 
-  async publish(type: string, payload: object): Promise<void> {
+  async publish(type: string, payload: object): Promise<boolean> {
     if (!this.producer) {
-      return;
+      return false;
     }
 
     if (!this.connected) {
@@ -35,7 +35,7 @@ class KafkaEventProducer {
     }
 
     if (!this.connected) {
-      return;
+      return false;
     }
 
     try {
@@ -52,8 +52,10 @@ class KafkaEventProducer {
           }
         ]
       });
+      return true;
     } catch (err) {
       console.error('kafka publish failed', (err as Error).message);
+      return false;
     }
   }
 

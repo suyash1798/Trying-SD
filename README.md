@@ -288,17 +288,19 @@ The actual WebSocket object is never stored in Redis.
 
 ## Async Events With Kafka
 
-`game-service` publishes `spin_completed` after the spin is already processed and the WebSocket response is sent.
+`game-service` writes `spin_completed` into an outbox table in the same database transaction as the spin history. A background publisher then reads pending outbox rows and publishes them to Kafka.
 
 ```text
 WebSocket spin
   -> wallet deduct/credit
-  -> save spin
+  -> save spin + outbox event
   -> send WebSocket response
-  -> publish Kafka spin_completed event
+  -> outbox publisher sends Kafka spin_completed event
 ```
 
 `analytics-service` consumes the event and logs aggregate stats by game.
+
+This prevents the common failure case where the spin is saved but Kafka publish fails before analytics receives the event.
 
 Watch analytics logs:
 
@@ -321,6 +323,7 @@ jackpot_configs
 jackpot_contributions
 game_rounds
 game_spins
+outbox_events
 ```
 
 Prisma schema:

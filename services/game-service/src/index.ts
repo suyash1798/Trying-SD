@@ -7,6 +7,7 @@ import GamePlayerDataRepository from './repositories/GamePlayerDataRepository';
 import IdempotencyRepository from './repositories/IdempotencyRepository';
 import RoundRepository from './repositories/RoundRepository';
 import RoomMembershipRepository from './repositories/RoomMembershipRepository';
+import OutboxRepository from './repositories/OutboxRepository';
 import SpinRepository from './repositories/SpinRepository';
 import DynamoDbClient from './infra/DynamoDbClient';
 import RedisKeyValueClient from './infra/RedisKeyValueClient';
@@ -14,6 +15,7 @@ import RedisPubSub from './infra/redisPubSub';
 import KafkaEventProducer from './infra/KafkaEventProducer';
 import JwtTokenVerifier from './infra/JwtTokenVerifier';
 import WalletClient from './services/walletClient';
+import OutboxPublisher from './services/OutboxPublisher';
 import GameSocketServer from './websocket/GameSocketServer';
 
 class GameServiceApp {
@@ -38,7 +40,9 @@ class GameServiceApp {
   private readonly currentRoundRepository = new CurrentRoundRepository(this.redisKeyValue);
   private readonly roundRepository = new RoundRepository(this.prisma);
   private readonly roomMembershipRepository = new RoomMembershipRepository(this.prisma);
+  private readonly outboxRepository = new OutboxRepository(this.prisma);
   private readonly spinRepository = new SpinRepository(this.prisma);
+  private readonly outboxPublisher = new OutboxPublisher(this.outboxRepository, this.kafkaProducer);
   private readonly idempotencyRepository = new IdempotencyRepository(
     this.redisKeyValue,
     Number(config.idempotencyTtlSeconds)
@@ -65,7 +69,6 @@ class GameServiceApp {
       deductWallet: (request) => this.walletClient.deduct(request),
       creditWallet: (request) => this.walletClient.credit(request),
       pubSub: this.pubSub,
-      kafkaProducer: this.kafkaProducer,
       gamePlayerDataRepository: this.gamePlayerDataRepository,
       currentRoundRepository: this.currentRoundRepository,
       idempotencyRepository: this.idempotencyRepository,
@@ -77,6 +80,7 @@ class GameServiceApp {
     });
 
     this.gameSocketServer.start();
+    this.outboxPublisher.start();
     this.registerShutdownHooks();
   }
 
@@ -87,6 +91,7 @@ class GameServiceApp {
 
     this.stopping = true;
     this.gameSocketServer?.stop();
+    this.outboxPublisher.stop();
     await this.pubSub.close();
     await this.kafkaProducer.close();
     await this.redisKeyValue.close();

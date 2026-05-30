@@ -52,20 +52,6 @@ export async function spinAction(
       console.error('spin notification publish failed', (publishErr as Error).message);
     });
 
-    context.kafkaProducer.publish('spin_completed', {
-      userId: ws.userId,
-      roomId: ws.roomId,
-      requestId: response.requestId,
-      roundId: response.roundId,
-      gameId: response.gameId,
-      spinId: response.spinId,
-      betAmount: response.betAmount,
-      winAmount: response.winAmount,
-      symbols: response.symbols,
-      balance: response.balance
-    }).catch((publishErr) => {
-      console.error('spin analytics publish failed', (publishErr as Error).message);
-    });
   } catch (err) {
     if (idempotencyKey) {
       await context.idempotencyRepository.release(idempotencyKey);

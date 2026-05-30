@@ -1,3 +1,4 @@
+import { randomUUID } from 'crypto';
 import { PrismaClient } from '@prisma/client';
 import { CompletedSpin } from '../game/models/Spin';
 
@@ -38,20 +39,43 @@ class SpinRepository {
   }
 
   async saveCompletedSpin(spin: CompletedSpin): Promise<void> {
-    await this.prisma.gameSpin.createMany({
-      data: {
-        userId: spin.userId,
-        roomId: spin.roomId,
-        roundId: spin.roundId,
-        gameId: spin.gameId,
-        requestId: spin.requestId,
-        spinId: spin.spinId,
-        betAmount: spin.betAmount,
-        winAmount: spin.winAmount,
-        symbols: spin.symbols,
-        balance: spin.balance
-      },
-      skipDuplicates: true
+    await this.prisma.$transaction(async (tx) => {
+      await tx.gameSpin.createMany({
+        data: {
+          userId: spin.userId,
+          roomId: spin.roomId,
+          roundId: spin.roundId,
+          gameId: spin.gameId,
+          requestId: spin.requestId,
+          spinId: spin.spinId,
+          betAmount: spin.betAmount,
+          winAmount: spin.winAmount,
+          symbols: spin.symbols,
+          balance: spin.balance
+        },
+        skipDuplicates: true
+      });
+
+      await tx.outboxEvent.createMany({
+        data: {
+          id: randomUUID(),
+          eventKey: `spin_completed:${spin.userId}:${spin.roundId}:${spin.spinId}`,
+          eventType: 'spin_completed',
+          payload: {
+            userId: spin.userId,
+            roomId: spin.roomId,
+            roundId: spin.roundId,
+            gameId: spin.gameId,
+            requestId: spin.requestId,
+            spinId: spin.spinId,
+            betAmount: spin.betAmount,
+            winAmount: spin.winAmount,
+            symbols: spin.symbols,
+            balance: spin.balance
+          }
+        },
+        skipDuplicates: true
+      });
     });
   }
 }

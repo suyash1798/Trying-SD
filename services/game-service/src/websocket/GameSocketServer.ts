@@ -9,7 +9,6 @@ import RoundRepository from '../repositories/RoundRepository';
 import RoomMembershipRepository from '../repositories/RoomMembershipRepository';
 import SpinRepository from '../repositories/SpinRepository';
 import RedisPubSub from '../infra/redisPubSub';
-import KafkaEventProducer from '../infra/KafkaEventProducer';
 import JwtTokenVerifier from '../infra/JwtTokenVerifier';
 import { log } from '../observability/logger';
 import { PlayerEvent } from '../types/events';
@@ -31,7 +30,6 @@ class GameSocketServer {
     deductWallet,
     creditWallet,
     pubSub,
-    kafkaProducer,
     gamePlayerDataRepository,
     currentRoundRepository,
     idempotencyRepository,
@@ -46,7 +44,6 @@ class GameSocketServer {
     deductWallet: WalletDeductHandler;
     creditWallet: WalletCreditHandler;
     pubSub: RedisPubSub;
-    kafkaProducer: KafkaEventProducer;
     gamePlayerDataRepository: GamePlayerDataRepository;
     currentRoundRepository: CurrentRoundRepository;
     idempotencyRepository: IdempotencyRepository;
@@ -63,7 +60,6 @@ class GameSocketServer {
       deductWallet,
       creditWallet,
       pubSub,
-      kafkaProducer,
       serverId,
       gamePlayerDataRepository,
       currentRoundRepository,
