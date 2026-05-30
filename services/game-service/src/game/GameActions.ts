@@ -1,4 +1,5 @@
 import RedisPubSub from '../infra/redisPubSub';
+import KafkaEventProducer from '../infra/KafkaEventProducer';
 import RequestLogger from '../observability/RequestLogger';
 import { IncomingMessagePayload, GameSocket } from '../types/websocket';
 import { joinAction } from './actions/joinAction';
@@ -35,6 +36,7 @@ class GameActions {
     deductWallet: WalletDeductHandler,
     creditWallet: WalletCreditHandler,
     pubSub: RedisPubSub,
+    kafkaProducer: KafkaEventProducer,
     serverId: string,
     gamePlayerDataRepository: GamePlayerDataRepository,
     currentRoundRepository: CurrentRoundRepository,
@@ -51,6 +53,7 @@ class GameActions {
     this.context = {
       gamePlayerDataService: new GamePlayerDataService(gamePlayerDataRepository),
       publisher: new GameEventPublisher(pubSub, serverId),
+      kafkaProducer,
       idempotencyRepository,
       roomMembershipRepository,
       roundService: new RoundService(currentRoundRepository, roundRepository),

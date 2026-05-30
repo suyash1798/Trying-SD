@@ -1,6 +1,7 @@
 import RequestLogger from '../../observability/RequestLogger';
 import GameEventPublisher from '../GameEventPublisher';
 import GameResponseSender from '../GameResponseSender';
+import KafkaEventProducer from '../../infra/KafkaEventProducer';
 import IdempotencyRepository from '../../repositories/IdempotencyRepository';
 import RoomMembershipRepository from '../../repositories/RoomMembershipRepository';
 import GamePlayerDataService from '../services/GamePlayerDataService';
@@ -35,6 +36,7 @@ export type RequestTrace = Record<string, unknown> & {
 export interface ActionContext {
   gamePlayerDataService: GamePlayerDataService;
   publisher: GameEventPublisher;
+  kafkaProducer: KafkaEventProducer;
   idempotencyRepository: IdempotencyRepository;
   roomMembershipRepository: RoomMembershipRepository;
   roundService: RoundService;

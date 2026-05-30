@@ -2,7 +2,7 @@
 
 A learning project for a realtime slot-style backend.
 
-The system uses WebSockets for game actions, Redis for realtime fanout and short-lived state, Postgres/Prisma for round and spin history, DynamoDB for flexible game/player data, and a wallet service for balance changes.
+The system uses WebSockets for game actions, Redis for realtime fanout and short-lived state, Kafka for async events, Postgres/Prisma for round and spin history, DynamoDB for flexible game/player data, and a wallet service for balance changes.
 
 ## Services
 
@@ -11,7 +11,9 @@ user-service       Device identity and JWT issuing
 lobby-service      HTTP room assignment before WebSocket join
 game-service       WebSocket game API
 wallet-service     Wallet ledger, deduct/credit, jackpot contribution
+analytics-service  Kafka consumer for async spin analytics
 redis              Pub/Sub, idempotency, current round state
+kafka              Durable event stream for async consumers
 postgres           Durable round/spin history
 dynamodb           Flexible game-player persistent data
 ws-load-tester     WebSocket load testing client
@@ -283,6 +285,28 @@ each instance notifies only local sockets in that room
 ```
 
 The actual WebSocket object is never stored in Redis.
+
+## Async Events With Kafka
+
+`game-service` publishes `spin_completed` after the spin is already processed and the WebSocket response is sent.
+
+```text
+WebSocket spin
+  -> wallet deduct/credit
+  -> save spin
+  -> send WebSocket response
+  -> publish Kafka spin_completed event
+```
+
+`analytics-service` consumes the event and logs aggregate stats by game.
+
+Watch analytics logs:
+
+```bash
+docker compose logs -f analytics-service
+```
+
+Kafka is for durable async processing. Redis Pub/Sub is still used for live room fanout.
 
 ## Data Stores
 

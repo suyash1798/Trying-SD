@@ -11,6 +11,7 @@ import SpinRepository from './repositories/SpinRepository';
 import DynamoDbClient from './infra/DynamoDbClient';
 import RedisKeyValueClient from './infra/RedisKeyValueClient';
 import RedisPubSub from './infra/redisPubSub';
+import KafkaEventProducer from './infra/KafkaEventProducer';
 import JwtTokenVerifier from './infra/JwtTokenVerifier';
 import WalletClient from './services/walletClient';
 import GameSocketServer from './websocket/GameSocketServer';
@@ -19,6 +20,11 @@ class GameServiceApp {
   private readonly walletClient = new WalletClient(config.walletUrl);
   private readonly tokenVerifier = new JwtTokenVerifier(config.jwtSecret);
   private readonly pubSub = new RedisPubSub(config.redisUrl, config.redisChannel);
+  private readonly kafkaProducer = new KafkaEventProducer(
+    config.kafkaBrokers,
+    config.kafkaTopic,
+    `${config.serverId}-producer`
+  );
   private readonly redisKeyValue = new RedisKeyValueClient(config.redisUrl);
   private readonly prisma = new PrismaClient();
   private readonly dynamoDb = new DynamoDbClient({
@@ -43,6 +49,7 @@ class GameServiceApp {
 
   async start(): Promise<void> {
     await this.pubSub.connect();
+    await this.kafkaProducer.connect();
     await this.redisKeyValue.connect();
     await this.prisma.$connect();
     await this.gamePlayerDataRepository.ensureTable();
@@ -58,6 +65,7 @@ class GameServiceApp {
       deductWallet: (request) => this.walletClient.deduct(request),
       creditWallet: (request) => this.walletClient.credit(request),
       pubSub: this.pubSub,
+      kafkaProducer: this.kafkaProducer,
       gamePlayerDataRepository: this.gamePlayerDataRepository,
       currentRoundRepository: this.currentRoundRepository,
       idempotencyRepository: this.idempotencyRepository,
@@ -80,6 +88,7 @@ class GameServiceApp {
     this.stopping = true;
     this.gameSocketServer?.stop();
     await this.pubSub.close();
+    await this.kafkaProducer.close();
     await this.redisKeyValue.close();
     await this.prisma.$disconnect();
     this.httpServer?.close();
