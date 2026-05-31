@@ -9,25 +9,14 @@ class EndRoundAction implements GameActionHandler<EndRoundPayload> {
 
   async handle(ws: GameSocket, payload: EndRoundPayload): Promise<EndRoundResponse> {
     const { requestId } = payload;
+    const { userId, roomId } = ws;
 
-    if (!ws.userId || !ws.roomId) {
+    if (!userId || !roomId) {
       throw new AppError('join required', 400);
     }
 
-    return this.context.roundService.endRound({
-      userId: ws.userId,
-      roomId: ws.roomId,
-      requestId,
-    });
-  }
-
-  successTrace(_payload: EndRoundPayload, response: object): Record<string, unknown> {
-    const endRound = response as EndRoundResponse;
-
-    return {
-      roundId: endRound.roundId,
-      spinCount: endRound.spinCount
-    };
+    const request = { userId, roomId, requestId };
+    return this.context.roundService.endRound(request);
   }
 }
 

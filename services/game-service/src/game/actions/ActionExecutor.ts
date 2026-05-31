@@ -58,12 +58,9 @@ class ActionExecutor {
 
       await this.remember(ws, idempotencyKey, response);
       this.context.responder.ok(ws, response);
-      this.context.logger.completed({
-        ...trace,
-        ...(handler.successTrace?.(payload, response) || {})
-      }, startedAt);
+      this.context.logger.completed(trace, startedAt);
 
-      await this.afterSuccess(handler, ws, payload, response, trace);
+      await this.onSuccess(handler, ws, payload, response, trace);
     } catch (err) {
       await this.release(idempotencyKey);
       this.fail(ws, payload, trace, startedAt, err);
@@ -153,7 +150,7 @@ class ActionExecutor {
     await this.context.idempotencyRepository.release(key);
   }
 
-  private async afterSuccess<TPayload extends IncomingMessagePayload>(
+  private async onSuccess<TPayload extends IncomingMessagePayload>(
     handler: GameActionHandler<TPayload>,
     ws: GameSocket,
     payload: TPayload,
@@ -161,9 +158,9 @@ class ActionExecutor {
     trace: RequestTrace
   ): Promise<void> {
     try {
-      await handler.afterSuccess?.(ws, payload, response, trace);
+      await handler.onSuccess?.(ws, payload, response, trace);
     } catch (err) {
-      console.error('action after-success failed', (err as Error).message);
+      console.error('action success side effect failed', (err as Error).message);
     }
   }
 

@@ -9,33 +9,27 @@ class SpinAction implements GameActionHandler<SpinPayload> {
 
   async handle(ws: GameSocket, payload: SpinPayload): Promise<SpinResponse> {
     const { requestId, gameId, spinId, betAmount } = payload;
+    const { userId, roomId } = ws;
 
-    if (!ws.userId || !ws.roomId) {
+    if (!userId || !roomId) {
       throw new AppError('join required', 400);
     }
 
-    return this.context.spinService.spin({
-      userId: ws.userId,
-      roomId: ws.roomId,
+    const request = {
+      userId,
+      roomId,
       requestId,
       gameId,
       spinId,
       betAmount
-    });
-  }
-
-  successTrace(payload: SpinPayload): Record<string, unknown> {
-    return {
-      spinId: payload.spinId,
-      betAmount: payload.betAmount
     };
+
+    return this.context.spinService.spin(request);
   }
 
-  async afterSuccess(ws: GameSocket, _payload: SpinPayload, response: object, trace: RequestTrace): Promise<void> {
+  async onSuccess(ws: GameSocket, response: object, trace: RequestTrace): Promise<void> {
     const spin = response as SpinResponse;
-
-    try {
-      await this.context.publisher.spinCompleted(ws, {
+    const spinCompleteData = {
         roundId: spin.roundId,
         spinId: spin.spinId,
         betAmount: spin.betAmount,
@@ -43,7 +37,10 @@ class SpinAction implements GameActionHandler<SpinPayload> {
         symbols: spin.symbols,
         balance: spin.balance,
         requestId: spin.requestId
-      });
+      };
+
+    try {
+      await this.context.publisher.spinCompleted(ws, spinCompleteData);
     } catch (err) {
       this.context.logger.redisPublishFailed(trace, err as Error);
     }

@@ -24,16 +24,11 @@ class JoinAction implements GameActionHandler<JoinPayload> {
     return { status: 'ok', action: 'joined', userId, roomId, requestId, roundHistory };
   }
 
-  successTrace(payload: JoinPayload): Record<string, unknown> {
-    return {
-      userId: payload.userId,
-      roomId: payload.roomId
-    };
-  }
+  async onSuccess(ws: GameSocket, payload: JoinPayload, _response: object, trace: RequestTrace): Promise<void> {
+    const { requestId } = payload;
 
-  async afterSuccess(ws: GameSocket, payload: JoinPayload, _response: object, trace: RequestTrace): Promise<void> {
     try {
-      await this.context.publisher.playerJoined(ws, { requestId: payload.requestId });
+      await this.context.publisher.playerJoined(ws, { requestId });
     } catch (err) {
       this.context.logger.redisPublishFailed(trace, err as Error);
     }

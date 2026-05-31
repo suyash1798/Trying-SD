@@ -1,11 +1,14 @@
 class AppError extends Error {
-  constructor(
-    message: string,
-    readonly status = 500,
-    readonly detail: unknown = null,
-    readonly source = "game-service",
-  ) {
+  public readonly status: number;
+  public readonly detail: unknown;
+  public readonly source: string;
+
+  constructor(message: string, status = 500, detail: unknown = null, source = 'game-service') {
     super(message);
+
+    this.status = status;
+    this.detail = detail;
+    this.source = source;
   }
 }
 

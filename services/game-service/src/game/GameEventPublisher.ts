@@ -1,5 +1,5 @@
-import RedisPubSub from "../infra/redisPubSub";
-import { GameSocket } from "../types/websocket";
+import RedisPubSub from '../infra/redisPubSub';
+import { GameSocket } from '../types/websocket';
 
 interface PlayerJoinedInput {
   requestId?: string | null;
@@ -18,23 +18,21 @@ interface SpinCompletedInput {
 class GameEventPublisher {
   constructor(
     private readonly pubSub: RedisPubSub,
-    private readonly serverId: string,
+    private readonly serverId: string
   ) {}
 
   async playerJoined(
     ws: GameSocket,
-    data: PlayerJoinedInput,
+    data: PlayerJoinedInput
   ): Promise<void> {
-    if (!ws.userId || !ws.roomId) {
-      return;
-    }
-
     const { requestId } = data;
+    const userId = ws.userId!;
+    const roomId = ws.roomId!;
 
     await this.pubSub.publish({
-      type: "player_joined",
-      userId: ws.userId,
-      roomId: ws.roomId,
+      type: 'player_joined',
+      userId,
+      roomId,
       requestId,
       sourceConnectionId: ws.id,
       serverId: this.serverId,
@@ -43,17 +41,15 @@ class GameEventPublisher {
   }
 
   async spinCompleted(ws: GameSocket, data: SpinCompletedInput): Promise<void> {
-    if (!ws.userId || !ws.roomId) {
-      return;
-    }
-
     const { roundId, spinId, betAmount, winAmount, symbols, balance, requestId } = data;
+    const userId = ws.userId!;
+    const roomId = ws.roomId!;
 
     await this.pubSub.publish({
-      type: "player_action",
-      action: "spin",
-      userId: ws.userId,
-      roomId: ws.roomId,
+      type: 'player_action',
+      action: 'spin',
+      userId,
+      roomId,
       roundId,
       spinId,
       betAmount,
