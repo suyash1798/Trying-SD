@@ -344,6 +344,26 @@ Run migrations:
 docker compose run --rm game-service npm run db:migrate
 ```
 
+Seed small demo game-service data:
+
+```bash
+docker compose run --rm game-service npm run db:seed
+```
+
+This adds one demo user id inside game-service tables, one active round, one completed round, a few spins, and active-round replay history. It is intentionally not run automatically on startup.
+
+If containers are already running, use:
+
+```bash
+sh scripts/seed-running.sh
+```
+
+Seed DynamoDB persistent game-player data only:
+
+```bash
+docker compose exec -T game-service npm run seed:persistent
+```
+
 ### Redis
 
 Redis is used for:

@@ -99,6 +99,7 @@ class GameServiceApp {
     await this.kafkaProducer.close();
     await this.redisKeyValue.close();
     await this.prisma.$disconnect();
+    this.dynamoDb.close();
     this.httpServer?.close();
   }
 

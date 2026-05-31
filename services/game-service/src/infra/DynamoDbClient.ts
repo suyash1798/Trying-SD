@@ -24,6 +24,10 @@ class DynamoDbClient {
 
     this.document = DynamoDBDocumentClient.from(client);
   }
+
+  close(): void {
+    this.document.destroy();
+  }
 }
 
 export default DynamoDbClient;
