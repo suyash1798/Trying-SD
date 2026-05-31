@@ -28,13 +28,15 @@ class RoundService {
     roomId: string;
     requestId: string;
   }): Promise<EndRoundResponse> {
-    const round = await this.currentRoundRepository.complete(userId, roomId);
+    const round = await this.currentRoundRepository.get(userId, roomId)
+      || await this.roundRepository.findActive(userId, roomId);
 
     if (!round) {
       throw new AppError('active round not found', 404);
     }
 
     await this.roundRepository.complete(round);
+    await this.currentRoundRepository.clear(userId, roomId);
 
     return {
       status: 'ok',

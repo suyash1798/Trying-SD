@@ -7,7 +7,6 @@ import GamePlayerDataService from '../services/GamePlayerDataService';
 import RoundService from '../services/RoundService';
 import SpinService from '../services/SpinService';
 import { WalletResponse } from '../../types/wallet';
-import { GameSocket } from '../../types/websocket';
 
 export type WalletDeductHandler = (request: {
   userId: string;
@@ -41,16 +40,4 @@ export interface ActionContext {
   spinService: SpinService;
   logger: RequestLogger;
   responder: GameResponseSender;
-}
-
-export async function remember(
-  ws: GameSocket,
-  key: string | null,
-  response: object,
-  store: IdempotencyRepository
-): Promise<void> {
-  if (key) {
-    ws.processedRequests.set(key, response);
-    await store.complete(key, response);
-  }
 }

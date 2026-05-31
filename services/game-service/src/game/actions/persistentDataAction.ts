@@ -1,60 +1,50 @@
 import AppError from '../../errors/AppError';
 import { GameSocket, PersistentDataPayload } from '../../types/websocket';
-import { ActionContext, remember, RequestTrace } from './types';
+import { PersistentDataResponse } from '../services/GamePlayerDataService';
+import { GameActionHandler } from './GameActionHandler';
+import { ActionContext, RequestTrace } from './types';
 
-export async function persistentDataAction(
-  ws: GameSocket,
-  payload: PersistentDataPayload,
-  context: ActionContext,
-  trace: RequestTrace,
-  startedAt: number,
-  idempotencyKey: string | null
-): Promise<void> {
-  const { requestId, gameId, data } = payload;
+class PersistentDataAction implements GameActionHandler<PersistentDataPayload> {
+  constructor(private readonly context: ActionContext) {}
 
-  if (!ws.userId) {
-    context.logger.failed(trace, startedAt, 'join required');
-    context.responder.error(ws, 'join required', requestId);
-    return;
-  }
+  async handle(ws: GameSocket, payload: PersistentDataPayload): Promise<PersistentDataResponse> {
+    const { requestId, gameId, data } = payload;
 
-  if (idempotencyKey && !await context.idempotencyRepository.reserve(idempotencyKey)) {
-    context.logger.duplicatePending(trace, startedAt);
-    context.responder.pending(ws, requestId);
-    return;
-  }
+    if (!ws.userId || !ws.roomId) {
+      throw new AppError('join required', 400);
+    }
 
-  try {
-    const response = await context.gamePlayerDataService.save({
+    return this.context.gamePlayerDataService.save({
       userId: ws.userId,
       requestId,
       gameId,
       data
     });
+  }
 
-    await remember(ws, idempotencyKey, response, context.idempotencyRepository);
-    context.responder.ok(ws, response);
-    context.logger.completed({ ...trace, gameId }, startedAt);
+  successTrace(payload: PersistentDataPayload): Record<string, unknown> {
+    return {
+      gameId: payload.gameId
+    };
+  }
 
-    if (ws.roomId) {
-      await context.roundService.recordActionIfActive(ws.userId, ws.roomId, {
-        action: 'persistent_data',
-        requestId,
-        payload: { gameId, data },
-        result: { status: 'ok' }
-      });
+  async afterSuccess(
+    ws: GameSocket,
+    payload: PersistentDataPayload,
+    _response: object,
+    _trace: RequestTrace
+  ): Promise<void> {
+    if (!ws.userId || !ws.roomId) {
+      return;
     }
-  } catch (err) {
-    if (idempotencyKey) {
-      await context.idempotencyRepository.release(idempotencyKey);
-    }
 
-    const appErr = err instanceof AppError ? err : new AppError((err as Error).message);
-    context.logger.failed(trace, startedAt, appErr.message, {
-      status: appErr.status,
-      source: appErr.source,
-      detail: appErr.detail
+    await this.context.roundService.recordActionIfActive(ws.userId, ws.roomId, {
+      action: 'persistent_data',
+      requestId: payload.requestId,
+      payload: { gameId: payload.gameId, data: payload.data },
+      result: { status: 'ok' }
     });
-    context.responder.error(ws, appErr.message, requestId, appErr.detail);
   }
 }
+
+export default PersistentDataAction;

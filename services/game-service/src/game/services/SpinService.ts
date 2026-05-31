@@ -76,7 +76,7 @@ class SpinService {
     const debit = await this.deductWallet({
       userId: request.userId,
       amount: request.betAmount,
-      transactionId: `wallet:${request.userId}:${request.spinId}:bet`,
+      transactionId: `wallet:${request.userId}:${round.roundId}:${request.spinId}:bet`,
       gameId: request.gameId,
       referenceId: request.spinId
     });
@@ -87,7 +87,7 @@ class SpinService {
       const credit = await this.creditWallet({
         userId: request.userId,
         amount: result.winAmount,
-        transactionId: `wallet:${request.userId}:${request.spinId}:win`,
+        transactionId: `wallet:${request.userId}:${round.roundId}:${request.spinId}:win`,
         referenceId: request.spinId
       });
       balance = credit.balance;

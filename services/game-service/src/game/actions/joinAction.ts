@@ -1,38 +1,43 @@
+import AppError from '../../errors/AppError';
 import { GameSocket, JoinPayload } from '../../types/websocket';
-import { ActionContext, remember, RequestTrace } from './types';
+import { GameActionHandler } from './GameActionHandler';
+import { ActionContext, RequestTrace } from './types';
 
-export async function joinAction(
-  ws: GameSocket,
-  payload: JoinPayload,
-  context: ActionContext,
-  trace: RequestTrace,
-  startedAt: number,
-  idempotencyKey: string | null
-): Promise<void> {
-  const { userId, roomId, requestId } = payload;
+class JoinAction implements GameActionHandler<JoinPayload> {
+  constructor(private readonly context: ActionContext) {}
 
-  if (!userId) {
-    context.logger.failed(trace, startedAt, 'invalid token');
-    context.responder.error(ws, 'invalid token', requestId);
-    return;
+  async handle(ws: GameSocket, payload: JoinPayload): Promise<object> {
+    const { userId, roomId, requestId } = payload;
+
+    if (!userId) {
+      throw new AppError('invalid token', 401);
+    }
+
+    if (!await this.context.roomMembershipRepository.exists(userId, roomId)) {
+      throw new AppError('room membership required', 403);
+    }
+
+    ws.userId = userId;
+    ws.roomId = roomId;
+
+    const roundHistory = await this.context.roundService.history(userId, roomId);
+    return { status: 'ok', action: 'joined', userId, roomId, requestId, roundHistory };
   }
 
-  ws.userId = userId;
-  ws.roomId = roomId;
-
-  if (idempotencyKey && !await context.idempotencyRepository.reserve(idempotencyKey)) {
-    context.logger.duplicatePending(trace, startedAt);
-    context.responder.pending(ws, requestId);
-    return;
+  successTrace(payload: JoinPayload): Record<string, unknown> {
+    return {
+      userId: payload.userId,
+      roomId: payload.roomId
+    };
   }
 
-  const roundHistory = await context.roundService.history(userId, roomId);
-  const response = { status: 'ok', action: 'joined', userId, roomId, requestId, roundHistory };
-  await remember(ws, idempotencyKey, response, context.idempotencyRepository);
-  context.responder.ok(ws, { action: 'joined', userId, roomId, requestId, roundHistory });
-  context.logger.completed({ ...trace, userId, roomId }, startedAt);
-
-  context.publisher.playerJoined(ws, { requestId }).catch((publishErr) => {
-    console.error('join notification publish failed', (publishErr as Error).message);
-  });
+  async afterSuccess(ws: GameSocket, payload: JoinPayload, _response: object, trace: RequestTrace): Promise<void> {
+    try {
+      await this.context.publisher.playerJoined(ws, { requestId: payload.requestId });
+    } catch (err) {
+      this.context.logger.redisPublishFailed(trace, err as Error);
+    }
+  }
 }
+
+export default JoinAction;

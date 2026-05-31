@@ -5,7 +5,7 @@ class GameResponseSender {
     this.send(ws, { status: "ok", ...payload });
   }
 
-  error(ws: GameSocket, error: string, requestId?: string, detail?: any): void {
+  error(ws: GameSocket, error: string, requestId?: string, detail?: unknown): void {
     this.send(ws, { status: "error", error, detail, requestId });
   }
 

@@ -82,8 +82,12 @@ class CurrentRoundRepository {
       return null;
     }
 
-    await this.redis.del(this.key(userId, roomId));
+    await this.clear(userId, roomId);
     return round;
+  }
+
+  async clear(userId: string, roomId: string): Promise<void> {
+    await this.redis.del(this.key(userId, roomId));
   }
 
   private async save(round: ActiveRound): Promise<void> {

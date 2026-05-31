@@ -39,7 +39,7 @@ class SpinRepository {
   }
 
   async saveCompletedSpin(spin: CompletedSpin): Promise<void> {
-    await this.prisma.$transaction(async (tx: Record<string, any>) => {
+    await this.prisma.$transaction(async (tx) => {
       await tx.gameSpin.createMany({
         data: {
           userId: spin.userId,

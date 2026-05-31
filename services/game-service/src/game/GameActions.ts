@@ -1,10 +1,19 @@
 import RedisPubSub from '../infra/redisPubSub';
 import RequestLogger from '../observability/RequestLogger';
-import { IncomingMessagePayload, GameSocket } from '../types/websocket';
-import { joinAction } from './actions/joinAction';
-import { spinAction } from './actions/spinAction';
-import { endRoundAction } from './actions/endRoundAction';
-import { persistentDataAction } from './actions/persistentDataAction';
+import {
+  EndRoundPayload,
+  IncomingMessagePayload,
+  GameSocket,
+  JoinPayload,
+  PersistentDataPayload,
+  SpinPayload
+} from '../types/websocket';
+import JoinAction from './actions/joinAction';
+import SpinAction from './actions/spinAction';
+import EndRoundAction from './actions/endRoundAction';
+import PersistentDataAction from './actions/persistentDataAction';
+import ActionExecutor from './actions/ActionExecutor';
+import { GameActionHandler } from './actions/GameActionHandler';
 import GameEventPublisher from './GameEventPublisher';
 import GamePlayerDataRepository from '../repositories/GamePlayerDataRepository';
 import GameResponseSender from './GameResponseSender';
@@ -31,6 +40,13 @@ export { WalletCreditHandler, WalletDeductHandler };
 class GameActions {
   private readonly context: ActionContext;
   private readonly idempotency: Idempotency;
+  private readonly executor: ActionExecutor;
+  private readonly handlers: {
+    join: GameActionHandler<JoinPayload>;
+    spin: GameActionHandler<SpinPayload>;
+    end_round: GameActionHandler<EndRoundPayload>;
+    persistent_data: GameActionHandler<PersistentDataPayload>;
+  };
 
   constructor(
     deductWallet: WalletDeductHandler,
@@ -66,6 +82,13 @@ class GameActions {
       logger,
       responder
     };
+    this.executor = new ActionExecutor(this.context);
+    this.handlers = {
+      join: new JoinAction(this.context),
+      spin: new SpinAction(this.context),
+      end_round: new EndRoundAction(this.context),
+      persistent_data: new PersistentDataAction(this.context)
+    };
   }
 
   async handle(ws: GameSocket, payload: IncomingMessagePayload): Promise<void> {
@@ -78,85 +101,19 @@ class GameActions {
     }
 
     const trace = this.trace(ws, payload);
-    const { action, requestId } = payload;
     const key = this.idempotency.key(ws, payload);
+    const handler = this.handlers[payload.action] as GameActionHandler<IncomingMessagePayload>;
 
-    if (action === 'join') {
-      if (!payload.userId) {
-        this.context.logger.failed(trace, startedAt, 'invalid token');
-        this.context.responder.error(ws, 'invalid token', requestId);
-        return;
-      }
-
-      if (!await this.context.roomMembershipRepository.exists(payload.userId, payload.roomId)) {
-        this.context.logger.failed(trace, startedAt, 'room membership required');
-        this.context.responder.error(ws, 'room membership required', requestId);
-        return;
-      }
-    }
-
-    if (key && ws.processedRequests.has(key)) {
-      this.context.logger.duplicateCompleted(trace, startedAt);
-      const response = ws.processedRequests.get(key) || {};
-      this.restoreSocketContext(ws, response);
-      this.context.responder.duplicate(ws, response);
-      return;
-    }
-
-    if (key && ws.pendingRequests.has(key)) {
-      this.context.logger.duplicatePending(trace, startedAt);
-      this.context.responder.pending(ws, requestId);
-      return;
-    }
-
-    if (key) {
-      const stored = await this.context.idempotencyRepository.get(key);
-
-      if (stored?.status === 'completed') {
-        if (this.hasConflict(payload, stored.response)) {
-          this.context.logger.failed(trace, startedAt, 'idempotency conflict');
-          this.context.responder.error(ws, 'idempotency conflict', requestId);
-          return;
-        }
-
-        this.context.logger.duplicateCompleted(trace, startedAt);
-        const response = stored.response || {};
-        this.restoreSocketContext(ws, response);
-        this.context.responder.duplicate(ws, response);
-        return;
-      }
-
-      if (stored?.status === 'pending') {
-        this.context.logger.duplicatePending(trace, startedAt);
-        this.context.responder.pending(ws, requestId);
-        return;
-      }
-    }
-
-    this.context.logger.started(trace);
-
-    if (action === 'join') {
-      await joinAction(ws, payload, this.context, trace, startedAt, key);
-      return;
-    }
-
-    if (action === 'spin') {
-      await spinAction(ws, payload, this.context, trace, startedAt, key);
-      return;
-    }
-
-    if (action === 'end_round') {
-      await endRoundAction(ws, payload, this.context, trace, startedAt, key);
-      return;
-    }
-
-    if (action === 'persistent_data') {
-      await persistentDataAction(ws, payload, this.context, trace, startedAt, key);
-      return;
-    }
-
-    this.context.logger.failed(trace, startedAt, 'invalid message');
-    this.context.responder.error(ws, 'invalid message', requestId);
+    await this.executor.execute({
+      ws,
+      payload,
+      trace,
+      startedAt,
+      idempotencyKey: key,
+      handler,
+      hasConflict: (response) => this.hasConflict(payload, response),
+      onDuplicateResponse: (response) => this.restoreSocketContext(ws, response)
+    });
   }
 
   private trace(ws: GameSocket, payload: IncomingMessagePayload): RequestTrace {

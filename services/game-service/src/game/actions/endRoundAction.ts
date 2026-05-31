@@ -1,50 +1,34 @@
 import AppError from '../../errors/AppError';
 import { EndRoundPayload, GameSocket } from '../../types/websocket';
-import { ActionContext, remember, RequestTrace } from './types';
+import { EndRoundResponse } from '../services/RoundService';
+import { GameActionHandler } from './GameActionHandler';
+import { ActionContext } from './types';
 
-export async function endRoundAction(
-  ws: GameSocket,
-  payload: EndRoundPayload,
-  context: ActionContext,
-  trace: RequestTrace,
-  startedAt: number,
-  idempotencyKey: string | null
-): Promise<void> {
-  const { requestId } = payload;
+class EndRoundAction implements GameActionHandler<EndRoundPayload> {
+  constructor(private readonly context: ActionContext) {}
 
-  if (!ws.userId || !ws.roomId) {
-    context.logger.failed(trace, startedAt, 'join required');
-    context.responder.error(ws, 'join required', requestId);
-    return;
-  }
+  async handle(ws: GameSocket, payload: EndRoundPayload): Promise<EndRoundResponse> {
+    const { requestId } = payload;
 
-  if (idempotencyKey && !await context.idempotencyRepository.reserve(idempotencyKey)) {
-    context.logger.duplicatePending(trace, startedAt);
-    context.responder.pending(ws, requestId);
-    return;
-  }
+    if (!ws.userId || !ws.roomId) {
+      throw new AppError('join required', 400);
+    }
 
-  try {
-    const response = await context.roundService.endRound({
+    return this.context.roundService.endRound({
       userId: ws.userId,
       roomId: ws.roomId,
       requestId,
     });
+  }
 
-    await remember(ws, idempotencyKey, response, context.idempotencyRepository);
-    context.responder.ok(ws, response);
-    context.logger.completed({ ...trace, roundId: response.roundId, spinCount: response.spinCount }, startedAt);
-  } catch (err) {
-    if (idempotencyKey) {
-      await context.idempotencyRepository.release(idempotencyKey);
-    }
+  successTrace(_payload: EndRoundPayload, response: object): Record<string, unknown> {
+    const endRound = response as EndRoundResponse;
 
-    const appErr = err instanceof AppError ? err : new AppError((err as Error).message);
-    context.logger.failed(trace, startedAt, appErr.message, {
-      status: appErr.status,
-      source: appErr.source,
-      detail: appErr.detail
-    });
-    context.responder.error(ws, appErr.message, requestId, appErr.detail);
+    return {
+      roundId: endRound.roundId,
+      spinCount: endRound.spinCount
+    };
   }
 }
+
+export default EndRoundAction;
