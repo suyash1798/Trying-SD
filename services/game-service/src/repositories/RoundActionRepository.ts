@@ -63,7 +63,7 @@ class RoundActionRepository {
       order by id
     `;
 
-    return actions.map((action) => ({
+    return actions.map((action: Record<string, any>) => ({
       action: action.action,
       requestId: action.requestId,
       payload: action.payload,

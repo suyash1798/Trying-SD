@@ -25,7 +25,7 @@ class OutboxRepository {
   }
 
   async claimPending(limit: number): Promise<OutboxEventRecord[]> {
-    return this.prisma.$transaction(async (tx) => {
+    return this.prisma.$transaction(async (tx: Record<string, any>) => {
       const events = await tx.$queryRaw<OutboxEventRecord[]>`
         select id, event_type as "eventType", payload
         from outbox_events
@@ -72,7 +72,7 @@ class OutboxRepository {
       _count: { _all: true }
     });
 
-    return rows.reduce<OutboxStats>((stats, row) => {
+    return rows.reduce((stats: OutboxStats, row: Record<string, any>) => {
       stats[row.status] = row._count._all;
       return stats;
     }, {
