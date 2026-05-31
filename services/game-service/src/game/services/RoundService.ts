@@ -12,6 +12,12 @@ export interface EndRoundResponse {
   spinCount: number;
 }
 
+interface EndRoundRequest {
+  userId: string;
+  roomId: string;
+  requestId: string;
+}
+
 class RoundService {
   constructor(
     private readonly currentRoundRepository: CurrentRoundRepository,
@@ -19,15 +25,9 @@ class RoundService {
     private readonly roundActionRepository: RoundActionRepository
   ) {}
 
-  async endRound({
-    userId,
-    roomId,
-    requestId
-  }: {
-    userId: string;
-    roomId: string;
-    requestId: string;
-  }): Promise<EndRoundResponse> {
+  async endRound(request: EndRoundRequest): Promise<EndRoundResponse> {
+    const { userId, roomId, requestId } = request;
+
     const round = await this.currentRoundRepository.get(userId, roomId)
       || await this.roundRepository.findActive(userId, roomId);
 

@@ -1,16 +1,17 @@
 import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
 import { DynamoDBDocumentClient } from '@aws-sdk/lib-dynamodb';
 
+interface DynamoDbClientOptions {
+  region: string;
+  endpoint?: string;
+}
+
 class DynamoDbClient {
   readonly document: DynamoDBDocumentClient;
 
-  constructor({
-    region,
-    endpoint
-  }: {
-    region: string;
-    endpoint?: string;
-  }) {
+  constructor(options: DynamoDbClientOptions) {
+    const { region, endpoint } = options;
+
     const client = new DynamoDBClient({
       region,
       endpoint,

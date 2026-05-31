@@ -7,20 +7,19 @@ export interface PersistentDataResponse {
   gameId: string;
 }
 
+interface SavePersistentDataRequest {
+  userId: string;
+  requestId: string;
+  gameId: string;
+  data: Record<string, unknown>;
+}
+
 class GamePlayerDataService {
   constructor(private readonly repository: GamePlayerDataRepository) {}
 
-  async save({
-    userId,
-    requestId,
-    gameId,
-    data
-  }: {
-    userId: string;
-    requestId: string;
-    gameId: string;
-    data: Record<string, unknown>;
-  }): Promise<PersistentDataResponse> {
+  async save(request: SavePersistentDataRequest): Promise<PersistentDataResponse> {
+    const { userId, requestId, gameId, data } = request;
+
     await this.repository.save({ userId, gameId, data });
 
     return {

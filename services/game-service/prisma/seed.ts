@@ -6,6 +6,14 @@ const gameId = 'slot-1';
 const activeRoundId = 'seed-active-round-1';
 const completedRoundId = 'seed-completed-round-1';
 
+interface SeedRoundAction {
+  roundId: string;
+  action: string;
+  requestId: string;
+  payload: Record<string, unknown>;
+  result: Record<string, unknown>;
+}
+
 class GameServiceSeeder {
   constructor(private readonly prisma: PrismaClient) {}
 
@@ -127,19 +135,9 @@ class GameServiceSeeder {
     });
   }
 
-  private async saveRoundAction({
-    roundId,
-    action,
-    requestId,
-    payload,
-    result
-  }: {
-    roundId: string;
-    action: string;
-    requestId: string;
-    payload: Record<string, unknown>;
-    result: Record<string, unknown>;
-  }): Promise<void> {
+  private async saveRoundAction(seedAction: SeedRoundAction): Promise<void> {
+    const { roundId, action, requestId, payload, result } = seedAction;
+
     await this.prisma.$executeRaw`
       insert into round_actions (
         round_id,

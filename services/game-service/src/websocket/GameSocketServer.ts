@@ -18,6 +18,23 @@ import Heartbeat from './Heartbeat';
 import { validateMessage } from './messageValidator';
 import RoomRegistry from './RoomRegistry';
 
+interface GameSocketServerOptions {
+  server: HttpServer;
+  heartbeatIntervalMs: number;
+  deductWallet: WalletDeductHandler;
+  creditWallet: WalletCreditHandler;
+  pubSub: RedisPubSub;
+  gamePlayerDataRepository: GamePlayerDataRepository;
+  currentRoundRepository: CurrentRoundRepository;
+  idempotencyRepository: IdempotencyRepository;
+  roomMembershipRepository: RoomMembershipRepository;
+  roundActionRepository: RoundActionRepository;
+  roundRepository: RoundRepository;
+  spinRepository: SpinRepository;
+  tokenVerifier: JwtTokenVerifier;
+  serverId: string;
+}
+
 class GameSocketServer {
   private readonly wss: WebSocketServer;
   private readonly heartbeat: Heartbeat;
@@ -25,37 +42,24 @@ class GameSocketServer {
   private readonly pubSub: RedisPubSub;
   private readonly rooms = new RoomRegistry();
 
-  constructor({
-    server,
-    heartbeatIntervalMs,
-    deductWallet,
-    creditWallet,
-    pubSub,
-    gamePlayerDataRepository,
-    currentRoundRepository,
-    idempotencyRepository,
-    roomMembershipRepository,
-    roundActionRepository,
-    roundRepository,
-    spinRepository,
-    tokenVerifier,
-    serverId
-  }: {
-    server: HttpServer;
-    heartbeatIntervalMs: number;
-    deductWallet: WalletDeductHandler;
-    creditWallet: WalletCreditHandler;
-    pubSub: RedisPubSub;
-    gamePlayerDataRepository: GamePlayerDataRepository;
-    currentRoundRepository: CurrentRoundRepository;
-    idempotencyRepository: IdempotencyRepository;
-    roomMembershipRepository: RoomMembershipRepository;
-    roundActionRepository: RoundActionRepository;
-    roundRepository: RoundRepository;
-    spinRepository: SpinRepository;
-    tokenVerifier: JwtTokenVerifier;
-    serverId: string;
-  }) {
+  constructor(options: GameSocketServerOptions) {
+    const {
+      server,
+      heartbeatIntervalMs,
+      deductWallet,
+      creditWallet,
+      pubSub,
+      gamePlayerDataRepository,
+      currentRoundRepository,
+      idempotencyRepository,
+      roomMembershipRepository,
+      roundActionRepository,
+      roundRepository,
+      spinRepository,
+      tokenVerifier,
+      serverId
+    } = options;
+
     this.wss = new WebSocketServer({ server });
     this.heartbeat = new Heartbeat(this.wss, heartbeatIntervalMs);
     this.pubSub = pubSub;

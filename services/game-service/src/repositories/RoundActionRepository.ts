@@ -1,26 +1,30 @@
 import { PrismaClient } from '@prisma/client';
 import { RoundAction } from '../game/models/Round';
 
+interface SaveRoundActionParams {
+  roundId: string;
+  userId: string;
+  roomId: string;
+  action: string;
+  requestId: string;
+  payload: Record<string, unknown>;
+  result?: Record<string, unknown>;
+}
+
 class RoundActionRepository {
   constructor(private readonly prisma: PrismaClient) {}
 
-  async save({
-    roundId,
-    userId,
-    roomId,
-    action,
-    requestId,
-    payload,
-    result
-  }: {
-    roundId: string;
-    userId: string;
-    roomId: string;
-    action: string;
-    requestId: string;
-    payload: Record<string, unknown>;
-    result?: Record<string, unknown>;
-  }): Promise<void> {
+  async save(params: SaveRoundActionParams): Promise<void> {
+    const {
+      roundId,
+      userId,
+      roomId,
+      action,
+      requestId,
+      payload,
+      result
+    } = params;
+
     await this.prisma.$executeRaw`
       insert into round_actions (
         round_id,

@@ -6,22 +6,11 @@ import RoomMembershipRepository from '../../repositories/RoomMembershipRepositor
 import GamePlayerDataService from '../services/GamePlayerDataService';
 import RoundService from '../services/RoundService';
 import SpinService from '../services/SpinService';
-import { WalletResponse } from '../../types/wallet';
+import { WalletCreditRequest, WalletDeductRequest, WalletResponse } from '../../types/wallet';
 
-export type WalletDeductHandler = (request: {
-  userId: string;
-  amount: number;
-  transactionId: string;
-  gameId: string;
-  referenceId?: string;
-}) => Promise<WalletResponse>;
+export type WalletDeductHandler = (request: WalletDeductRequest) => Promise<WalletResponse>;
 
-export type WalletCreditHandler = (request: {
-  userId: string;
-  amount: number;
-  transactionId: string;
-  referenceId?: string;
-}) => Promise<WalletResponse>;
+export type WalletCreditHandler = (request: WalletCreditRequest) => Promise<WalletResponse>;
 
 export type RequestTrace = Record<string, unknown> & {
   action: string;
